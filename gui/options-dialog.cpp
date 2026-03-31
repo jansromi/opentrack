@@ -141,6 +141,7 @@ options_dialog::options_dialog(std::unique_ptr<ITrackerDialog>& tracker_dialog_,
     tie_setting(main.tracklogging_enabled, ui.tracklogging_enabled);
 
     tie_setting(main.neck_enable, ui.neck_enable);
+    tie_setting(main.neck_deferred_yaw, ui.neck_deferred_yaw);
 
     const bool is_translation_disabled = with_global_settings_object([] (QSettings& s) {
         return s.value("disable-translation", false).toBool();

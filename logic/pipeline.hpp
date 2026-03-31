@@ -50,9 +50,10 @@ public:
     void on_center();
 
     Pose_ rotate(const rmat& rmat, const Pose_& in, vec3_bool disable) const;
-    Pose_ apply_neck(const rmat& R, int nz, bool disable_tz) const;
+    Pose_ apply_neck(const rmat& R, int nz, bool disable_tz, bool deferred_yaw) const;
     Pose apply_pipeline(reltrans_state state, const Pose& value,
-                        const vec6_bool& disable, bool neck_enable, int neck_z);
+                        const vec6_bool& disable, bool neck_enable, int neck_z,
+                        bool neck_deferred_yaw);
 };
 
 enum bit_flags : unsigned {

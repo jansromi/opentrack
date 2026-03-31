@@ -75,7 +75,8 @@ Pose_ reltrans::rotate(const rmat& R, const Pose_& in, vec3_bool disable) const
 }
 
 Pose reltrans::apply_pipeline(reltrans_state state, const Pose& value,
-                              const vec6_bool& disable, bool neck_enable, int neck_z)
+                              const vec6_bool& disable, bool neck_enable, int neck_z,
+                              bool neck_deferred_yaw)
 {
     Pose_ rel((const double*)value);
 
@@ -114,7 +115,7 @@ Pose reltrans::apply_pipeline(reltrans_state state, const Pose& value,
             // dynamic neck
             if (neck_enable && (state != reltrans_non_center || !in_zone))
             {
-                const Pose_ neck = apply_neck(R, -neck_z, disable(TZ));
+                const Pose_ neck = apply_neck(R, -neck_z, disable(TZ), neck_deferred_yaw);
 
                 for (unsigned k = 0; k < 3; k++)
                     rel(k) += neck(k);
@@ -171,11 +172,27 @@ Pose reltrans::apply_pipeline(reltrans_state state, const Pose& value,
     };
 }
 
-Pose_ reltrans::apply_neck(const rmat& R, int nz, bool disable_tz) const
+Pose_ reltrans::apply_neck(const rmat& R, int nz, bool disable_tz, bool deferred_yaw) const
 {
+    constexpr double deg_90 = 0.5 * M_PI;
+    const rmat rot = [&] {
+        if (!deferred_yaw)
+            return R;
+
+        Pose_ ypr = rmat_to_euler(R);
+        double& yaw = ypr(0);
+
+        if (std::abs(yaw) < deg_90)
+            yaw = 0;
+        else
+            yaw -= std::copysign(deg_90, yaw);
+
+        return euler_to_rmat(ypr);
+    }();
+
     Pose_ neck;
 
-    neck = rotate(R, { 0, 0, nz }, {});
+    neck = rotate(rot, { 0, 0, nz }, {});
     neck(TZ) = neck(TZ) - nz;
 
     if (disable_tz)
@@ -438,7 +455,8 @@ Pose pipeline::apply_reltrans(Pose value, vec6_bool disabled, bool centerp)
                                  !!s.reltrans_disable_src_pitch,
                                  !!s.reltrans_disable_src_roll, },
                                s.neck_enable,
-                               s.neck_z);
+                               s.neck_z,
+                               s.neck_deferred_yaw);
 
     // reltrans will move it
     for (unsigned k = 0; k < 6; k++)
