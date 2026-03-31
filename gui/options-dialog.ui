@@ -2423,6 +2423,16 @@
                </property>
               </widget>
              </item>
+             <item row="2" column="0" colspan="2">
+              <widget class="QCheckBox" name="neck_deferred_yaw">
+               <property name="text">
+                <string>Defer yaw neck translation until 90°</string>
+               </property>
+               <property name="toolTip">
+                <string>When enabled, neck displacement from yaw starts only after looking 90° left or right. Rotation is unaffected.</string>
+               </property>
+              </widget>
+             </item>
             </layout>
            </widget>
           </item>

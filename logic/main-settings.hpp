@@ -79,6 +79,7 @@ struct OTR_LOGIC_EXPORT main_settings final
     value<centering_state> centering_mode { b, "centering-mode", center_roll_compensated };
     value<int> neck_z { b, "neck-depth", 0 };
     value<bool> neck_enable { b, "neck-enable", false };
+    value<bool> neck_deferred_yaw { b, "neck-deferred-yaw", false };
     value<double> precision_yaw_scale { b, "precision-yaw-scale", 0.6 };
     value<double> precision_pitch_scale { b, "precision-pitch-scale", 0.7 };
     value<double> precision_roll_scale { b, "precision-roll-scale", 1.0 };
