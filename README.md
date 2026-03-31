@@ -12,6 +12,13 @@ Please first refer to <<https://github.com/opentrack/opentrack/wiki>>
 for [new user guide](https://github.com/opentrack/opentrack/wiki/Quick-Start-Guide-(WIP)), [frequent answers](https://github.com/opentrack/opentrack/wiki/common-issues), specific tracker/filter
 documentation. See also the [gameplay video](https://www.youtube.com/watch?v=XI73ul_FnBI) with opentrack set up.
 
+## What Changed In This Fork
+
+- Added a "Precision while held" mode that temporarily scales mapped yaw, pitch, and roll output while a bound key is held.
+- Added primary and alternate key bindings for the precision mode in the options dialog.
+- Added configurable precision scale values for yaw, pitch, and roll in the options dialog.
+- Refactored the pipeline precision handling so the precision state is cleared on recenter and transitions cleanly when the precision key is released.
+
 ## Usage
 
 `opentrack` is an application dedicated to tracking user's head
@@ -110,4 +117,3 @@ The code is held to a high-quality standard and written with utmost care; consid
 On Windows, use either mingw-w64 or MS Visual Studio 2015 Update 3/newer. On other platforms use GNU or LLVM. Refer to [Visual C++ 2015 build instructions](https://github.com/opentrack/opentrack/wiki/Building-under-MS-Visual-C---2017-and-later).
 
 On Linux, see [our wiki's Linux build instructions](https://github.com/opentrack/opentrack/wiki/Building-on-Linux).
-
