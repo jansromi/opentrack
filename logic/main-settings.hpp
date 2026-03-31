@@ -79,6 +79,9 @@ struct OTR_LOGIC_EXPORT main_settings final
     value<centering_state> centering_mode { b, "centering-mode", center_roll_compensated };
     value<int> neck_z { b, "neck-depth", 0 };
     value<bool> neck_enable { b, "neck-enable", false };
+    value<double> precision_yaw_scale { b, "precision-yaw-scale", 0.6 };
+    value<double> precision_pitch_scale { b, "precision-pitch-scale", 0.7 };
+    value<double> precision_roll_scale { b, "precision-roll-scale", 1.0 };
 
     key_opts key_start_tracking1 { b, "start-tracking" };
     key_opts key_start_tracking2 { b, "start-tracking-alt" };
@@ -106,6 +109,9 @@ struct OTR_LOGIC_EXPORT main_settings final
 
     key_opts key_zero_press1 { b, "zero-press" };
     key_opts key_zero_press2 { b, "zero-press-alt" };
+
+    key_opts key_precision1 { b, "precision" };
+    key_opts key_precision2 { b, "precision-alt" };
 
     value<bool> tracklogging_enabled { b, "tracklogging-enabled", false };
     value<QString> tracklogging_filename { b, "tracklogging-filename", {} };

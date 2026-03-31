@@ -62,6 +62,9 @@ public:
         key_tuple(s.key_zero2, [this](bool) { pipeline_.toggle_zero(); }, true),
         key_tuple(s.key_zero_press1, [this](bool x) { pipeline_.set_zero(x); }, false),
         key_tuple(s.key_zero_press2, [this](bool x) { pipeline_.set_zero(x); }, false),
+
+        key_tuple(s.key_precision1, [this](bool x) { pipeline_.set_precision(x); }, false),
+        key_tuple(s.key_precision2, [this](bool x) { pipeline_.set_precision(x); }, false),
     };
 
     Work(const Mappings& m, QFrame* frame,

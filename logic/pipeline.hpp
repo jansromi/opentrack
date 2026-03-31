@@ -62,16 +62,17 @@ enum bit_flags : unsigned {
     f_enabled_h      = 1 << 2,
     f_enabled_p      = 1 << 3,
     f_zero           = 1 << 4,
+    f_precision      = 1 << 5,
 };
 
 struct OTR_LOGIC_EXPORT bits
 {
     bit_flags flags{0};
-    QMutex lock;
+    mutable QMutex lock;
 
     void set(bit_flags flag, bool val);
     void negate(bit_flags flag);
-    bool get(bit_flags flag);
+    bool get(bit_flags flag) const;
     bits();
 };
 
@@ -103,6 +104,11 @@ class OTR_LOGIC_EXPORT pipeline : private QThread
         dquat QC, QR, camera;
     } center;
 
+    struct {
+        bool was_active = false;
+        Pose input_anchor, output_anchor, committed_offset;
+    } precision;
+
     time_units::ms backlog_time {};
 
     bool tracking_started = false;
@@ -112,11 +118,13 @@ class OTR_LOGIC_EXPORT pipeline : private QThread
     void run() override;
     bool maybe_enable_center_on_tracking_started();
     void maybe_set_center_pose(const centering_state mode, const Pose& value, bool own_center_logic);
+    void clear_precision();
     Pose apply_center(const centering_state mode, Pose value) const;
     Pose apply_camera_offset(Pose value) const;
     std::tuple<Pose, Pose, vec6_bool> get_selected_axis_values(const Pose& newpose) const;
     Pose maybe_apply_filter(const Pose& value) const;
     Pose apply_reltrans(Pose value, vec6_bool disabled, bool centerp);
+    Pose apply_precision(Pose value);
     Pose apply_zero_pos(Pose value) const;
 
     bits b;
@@ -137,6 +145,7 @@ public:
     void set_held_center(bool value);
     void set_enabled(bool value);
     void set_zero(bool value);
+    void set_precision(bool value);
 };
 
 } // ns pipeline_impl
