@@ -439,6 +439,18 @@ Pose pipeline::apply_reltrans(Pose value, vec6_bool disabled, bool centerp)
     return value;
 }
 
+Pose pipeline::apply_precision(Pose value) const
+{
+    if (!b.get(f_precision))
+        return value;
+
+    value(Yaw) *= s.precision_yaw_scale;
+    value(Pitch) *= s.precision_pitch_scale;
+    value(Roll) *= s.precision_roll_scale;
+
+    return value;
+}
+
 void pipeline::logic()
 {
     using namespace euler;
@@ -507,6 +519,8 @@ void pipeline::logic()
             value(i) = map(value(i), m(i));
         nan_check(value);
     }
+
+    value = apply_precision(value);
 
     goto ok;
 
@@ -687,6 +701,7 @@ void pipeline::set_held_center(bool value)
 
 void pipeline::set_enabled(bool value) { b.set(f_enabled_h, value); }
 void pipeline::set_zero(bool value) { b.set(f_zero, value); }
+void pipeline::set_precision(bool value) { b.set(f_precision, value); }
 
 void pipeline::toggle_zero() { b.negate(f_zero); }
 bool pipeline::is_zero() const { return !!(b.flags & f_zero); }
@@ -709,7 +724,7 @@ void bits::negate(bit_flags flag)
     flags ^= flag;
 }
 
-bool bits::get(bit_flags flag)
+bool bits::get(bit_flags flag) const
 {
     QMutexLocker l(&lock);
 
@@ -723,6 +738,7 @@ bits::bits()
     set(f_enabled_p, true);
     set(f_enabled_h, true);
     set(f_zero, false);
+    set(f_precision, false);
 }
 
 } // ns pipeline_impl

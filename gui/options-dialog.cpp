@@ -96,6 +96,9 @@ options_dialog::options_dialog(std::unique_ptr<ITrackerDialog>& tracker_dialog_,
     tie_setting(main.reltrans_disable_src_roll, ui.tcomp_src_roll_disable);
 
     tie_setting(main.neck_z, ui.neck_z);
+    tie_setting(main.precision_yaw_scale, ui.precision_yaw_scale);
+    tie_setting(main.precision_pitch_scale, ui.precision_pitch_scale);
+    tie_setting(main.precision_roll_scale, ui.precision_roll_scale);
 
     tie_setting(main.a_x.zero, ui.pos_tx);
     tie_setting(main.a_y.zero, ui.pos_ty);
@@ -165,6 +168,9 @@ options_dialog::options_dialog(std::unique_ptr<ITrackerDialog>& tracker_dialog_,
 
         { main.key_zero_press1, ui.zero_held_text, ui.bind_zero_held },
         { main.key_zero_press2, ui.zero_held_text_2, ui.bind_zero_held_2 },
+
+        { main.key_precision1, ui.precision_text, ui.bind_precision },
+        { main.key_precision2, ui.precision_text_2, ui.bind_precision_2 },
 
         { main.key_start_tracking1, ui.start_tracking_text, ui.bind_start },
         { main.key_start_tracking2, ui.start_tracking_text_2, ui.bind_start_2 },
