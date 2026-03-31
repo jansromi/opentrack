@@ -104,6 +104,11 @@ class OTR_LOGIC_EXPORT pipeline : private QThread
         dquat QC, QR, camera;
     } center;
 
+    struct {
+        bool was_active = false;
+        Pose input_anchor, output_anchor, committed_offset;
+    } precision;
+
     time_units::ms backlog_time {};
 
     bool tracking_started = false;
@@ -113,12 +118,13 @@ class OTR_LOGIC_EXPORT pipeline : private QThread
     void run() override;
     bool maybe_enable_center_on_tracking_started();
     void maybe_set_center_pose(const centering_state mode, const Pose& value, bool own_center_logic);
+    void clear_precision();
     Pose apply_center(const centering_state mode, Pose value) const;
     Pose apply_camera_offset(Pose value) const;
     std::tuple<Pose, Pose, vec6_bool> get_selected_axis_values(const Pose& newpose) const;
     Pose maybe_apply_filter(const Pose& value) const;
     Pose apply_reltrans(Pose value, vec6_bool disabled, bool centerp);
-    Pose apply_precision(Pose value) const;
+    Pose apply_precision(Pose value);
     Pose apply_zero_pos(Pose value) const;
 
     bits b;
