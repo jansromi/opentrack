@@ -21,6 +21,7 @@
 #include <QGroupBox>
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QLineEdit>
 #include <QVBoxLayout>
 
 #ifdef _WIN32
@@ -128,9 +129,12 @@ void options_dialog::setup_manual_translation_ui()
     output_grid->addWidget(new QLabel(tr("Min"), this), 0, 2);
     output_grid->addWidget(new QLabel(tr("Max"), this), 0, 3);
     output_grid->addWidget(new QLabel(tr("Speed"), this), 0, 4);
-    output_grid->addWidget(new QLabel(tr("Analog axis"), this), 0, 5);
-    output_grid->addWidget(new QLabel(tr("Invert"), this), 0, 6);
-    output_grid->addWidget(new QLabel(tr("Deadzone"), this), 0, 7);
+    output_grid->addWidget(new QLabel(tr("Detents"), this), 0, 5);
+    output_grid->addWidget(new QLabel(tr("Points"), this), 0, 6);
+    output_grid->addWidget(new QLabel(tr("Delay"), this), 0, 7);
+    output_grid->addWidget(new QLabel(tr("Analog axis"), this), 0, 8);
+    output_grid->addWidget(new QLabel(tr("Invert"), this), 0, 9);
+    output_grid->addWidget(new QLabel(tr("Deadzone"), this), 0, 10);
 
     struct row_def { const char* label; manual_translation_axis_settings* axis; };
     const row_def rows[] = {
@@ -155,6 +159,9 @@ void options_dialog::setup_manual_translation_ui()
         widgets.min = new QDoubleSpinBox(this);
         widgets.max = new QDoubleSpinBox(this);
         widgets.speed = new QDoubleSpinBox(this);
+        widgets.detents_enabled = new QCheckBox(this);
+        widgets.detent_positions = new QLineEdit(this);
+        widgets.detent_delay = new QDoubleSpinBox(this);
         widgets.analog_axis = new QComboBox(this);
         widgets.analog_invert = new QCheckBox(this);
         widgets.analog_deadzone = new QDoubleSpinBox(this);
@@ -172,6 +179,14 @@ void options_dialog::setup_manual_translation_ui()
         widgets.speed->setRange(0.0, 600.0);
         widgets.speed->setSuffix(tr(" cm/s"));
 
+        widgets.detent_positions->setPlaceholderText(tr("-33, 0, 33"));
+        widgets.detent_positions->setToolTip(tr("Comma, semicolon, or space separated detent points in cm"));
+
+        widgets.detent_delay->setDecimals(2);
+        widgets.detent_delay->setSingleStep(0.05);
+        widgets.detent_delay->setRange(0.0, 10.0);
+        widgets.detent_delay->setSuffix(tr(" s"));
+
         widgets.analog_axis->addItem(tr("Disabled"), 0);
         for (int axis_idx = 1; axis_idx <= 8; axis_idx++)
             widgets.analog_axis->addItem(tr("Joystick axis #%1").arg(axis_idx), axis_idx);
@@ -185,17 +200,24 @@ void options_dialog::setup_manual_translation_ui()
         output_grid->addWidget(widgets.min, i + 1, 2);
         output_grid->addWidget(widgets.max, i + 1, 3);
         output_grid->addWidget(widgets.speed, i + 1, 4);
-        output_grid->addWidget(widgets.analog_axis, i + 1, 5);
-        output_grid->addWidget(widgets.analog_invert, i + 1, 6);
-        output_grid->addWidget(widgets.analog_deadzone, i + 1, 7);
+        output_grid->addWidget(widgets.detents_enabled, i + 1, 5);
+        output_grid->addWidget(widgets.detent_positions, i + 1, 6);
+        output_grid->addWidget(widgets.detent_delay, i + 1, 7);
+        output_grid->addWidget(widgets.analog_axis, i + 1, 8);
+        output_grid->addWidget(widgets.analog_invert, i + 1, 9);
+        output_grid->addWidget(widgets.analog_deadzone, i + 1, 10);
 
         tie_setting(row.axis->mode, widgets.mode);
         tie_setting(row.axis->min, widgets.min);
         tie_setting(row.axis->max, widgets.max);
         tie_setting(row.axis->speed, widgets.speed);
+        tie_setting(row.axis->detents_enabled, widgets.detents_enabled);
+        tie_setting(row.axis->detent_positions, widgets.detent_positions);
+        tie_setting(row.axis->detent_delay, widgets.detent_delay);
         tie_setting(row.axis->analog_axis, widgets.analog_axis);
         tie_setting(row.axis->analog_invert, widgets.analog_invert);
         tie_setting(row.axis->analog_deadzone, widgets.analog_deadzone);
+        connect(widgets.detents_enabled, &QCheckBox::toggled, this, [this](bool) { refresh_manual_translation_ui(); });
         connect(widgets.mode,
                 static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged),
                 this,
@@ -241,6 +263,9 @@ void options_dialog::refresh_manual_translation_ui()
         manual_axes[i].min->setEnabled(manual_keys || manual_analog);
         manual_axes[i].max->setEnabled(manual_keys || manual_analog);
         manual_axes[i].speed->setEnabled(manual_keys);
+        manual_axes[i].detents_enabled->setEnabled(manual_keys);
+        manual_axes[i].detent_positions->setEnabled(manual_keys && (*main.manual_translation_axes[i]).detents_enabled());
+        manual_axes[i].detent_delay->setEnabled(manual_keys && (*main.manual_translation_axes[i]).detents_enabled());
         manual_axes[i].analog_axis->setEnabled(manual_analog);
         manual_axes[i].analog_invert->setEnabled(manual_analog);
         manual_axes[i].analog_deadzone->setEnabled(manual_analog);

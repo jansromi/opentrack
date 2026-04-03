@@ -47,6 +47,9 @@ struct OTR_LOGIC_EXPORT manual_translation_axis_settings final
 {
     value<translation_control_mode> mode;
     value<double> min, max, speed;
+    value<bool> detents_enabled;
+    value<QString> detent_positions;
+    value<double> detent_delay;
     value<int> analog_axis;
     value<bool> analog_invert;
     value<double> analog_deadzone;
@@ -57,6 +60,9 @@ struct OTR_LOGIC_EXPORT manual_translation_axis_settings final
         min(b, prefix + "-min", -75.0),
         max(b, prefix + "-max", 75.0),
         speed(b, prefix + "-speed", 30.0),
+        detents_enabled(b, prefix + "-detents-enabled", false),
+        detent_positions(b, prefix + "-detent-positions", ""),
+        detent_delay(b, prefix + "-detent-delay", 0.8),
         analog_axis(b, prefix + "-analog-axis", 0),
         analog_invert(b, prefix + "-analog-invert", false),
         analog_deadzone(b, prefix + "-analog-deadzone", 0.05),

@@ -16,6 +16,7 @@
 #include <QDoubleSpinBox>
 #include <QGridLayout>
 #include <QLabel>
+#include <QLineEdit>
 #include <QPushButton>
 
 #include <array>
@@ -60,6 +61,9 @@ private:
         QDoubleSpinBox* min = nullptr;
         QDoubleSpinBox* max = nullptr;
         QDoubleSpinBox* speed = nullptr;
+        QCheckBox* detents_enabled = nullptr;
+        QLineEdit* detent_positions = nullptr;
+        QDoubleSpinBox* detent_delay = nullptr;
         QComboBox* analog_axis = nullptr;
         QCheckBox* analog_invert = nullptr;
         QDoubleSpinBox* analog_deadzone = nullptr;
