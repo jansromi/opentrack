@@ -31,9 +31,45 @@ enum centering_state : int
     center_roll_compensated = 3,
 };
 
+enum translation_control_mode : int
+{
+    translation_tracked = 0,
+    translation_manual_keys = 1,
+    translation_manual_analog = 2,
+    translation_disabled = 3,
+};
+
 namespace main_settings_impl {
 
 using namespace options;
+
+struct OTR_LOGIC_EXPORT manual_translation_axis_settings final
+{
+    value<translation_control_mode> mode;
+    value<double> min, max, speed;
+    value<bool> detents_enabled;
+    value<QString> detent_positions;
+    value<double> detent_delay;
+    value<int> analog_axis;
+    value<bool> analog_invert;
+    value<double> analog_deadzone;
+    key_opts negative_key, positive_key;
+
+    manual_translation_axis_settings(bundle b, const QString& prefix) :
+        mode(b, prefix + "-mode", translation_tracked),
+        min(b, prefix + "-min", -75.0),
+        max(b, prefix + "-max", 75.0),
+        speed(b, prefix + "-speed", 30.0),
+        detents_enabled(b, prefix + "-detents-enabled", false),
+        detent_positions(b, prefix + "-detent-positions", ""),
+        detent_delay(b, prefix + "-detent-delay", 0.8),
+        analog_axis(b, prefix + "-analog-axis", 0),
+        analog_invert(b, prefix + "-analog-invert", false),
+        analog_deadzone(b, prefix + "-analog-deadzone", 0.05),
+        negative_key(b, prefix + "-negative"),
+        positive_key(b, prefix + "-positive")
+    {}
+};
 
 struct OTR_LOGIC_EXPORT module_settings
 {
@@ -83,6 +119,11 @@ struct OTR_LOGIC_EXPORT main_settings final
     value<double> precision_yaw_scale { b, "precision-yaw-scale", 0.6 };
     value<double> precision_pitch_scale { b, "precision-pitch-scale", 0.7 };
     value<double> precision_roll_scale { b, "precision-roll-scale", 1.0 };
+    value<QString> manual_analog_guid { b, "manual-translation-analog-guid", "" };
+    manual_translation_axis_settings manual_x { b, "manual-translation-x" };
+    manual_translation_axis_settings manual_y { b, "manual-translation-y" };
+    manual_translation_axis_settings manual_z { b, "manual-translation-z" };
+    manual_translation_axis_settings* manual_translation_axes[3] { &manual_x, &manual_y, &manual_z };
 
     key_opts key_start_tracking1 { b, "start-tracking" };
     key_opts key_start_tracking2 { b, "start-tracking-alt" };
@@ -123,4 +164,5 @@ struct OTR_LOGIC_EXPORT main_settings final
 } // ns main_settings_impl
 
 using module_settings = main_settings_impl::module_settings;
+using manual_translation_axis_settings = main_settings_impl::manual_translation_axis_settings;
 using main_settings = main_settings_impl::main_settings;

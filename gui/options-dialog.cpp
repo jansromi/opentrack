@@ -15,6 +15,18 @@
 #include <QLayout>
 #include <QDialog>
 #include <QFileDialog>
+#include <QCheckBox>
+#include <QDoubleSpinBox>
+#include <QGridLayout>
+#include <QGroupBox>
+#include <QHBoxLayout>
+#include <QLabel>
+#include <QLineEdit>
+#include <QVBoxLayout>
+
+#ifdef _WIN32
+#include "input/win32-joystick.hpp"
+#endif
 
 using namespace options;
 using namespace options::globals;
@@ -49,6 +61,222 @@ void options_dialog::set_disable_translation_state(bool value)
         s.setValue("disable-translation", value);
         mark_global_ini_modified();
     });
+}
+
+void options_dialog::connect_binding_controls(key_opts& kopts, QLabel* label, QPushButton* button)
+{
+    auto* opt = &kopts;
+    label->setText(kopts_to_string(kopts));
+    connect(&kopts.keycode,
+            static_cast<void (value_::*)(const QString&) const>(&value_::valueChanged),
+            label,
+            [label, opt](const QString&) { label->setText(kopts_to_string(*opt)); });
+    connect(button, &QPushButton::clicked, this, [this, opt, label] { bind_key(*opt, label); });
+}
+
+void options_dialog::add_manual_shortcut_row(QGridLayout* layout, int row, const QString& label_text,
+                                             QLabel*& text, QPushButton*& button)
+{
+    auto* label = new QLabel(label_text, this);
+    text = new QLabel(this);
+    button = new QPushButton(tr("Bind"), this);
+
+    text->setMinimumWidth(100);
+
+    layout->addWidget(label, row, 0);
+    layout->addWidget(text, row, 1);
+    layout->addWidget(button, row, 2);
+}
+
+void options_dialog::setup_manual_translation_ui()
+{
+    auto* output_layout = findChild<QVBoxLayout*>("verticalLayout_4");
+    auto* shortcuts_layout = findChild<QVBoxLayout*>("verticalLayout");
+
+    if (!output_layout || !shortcuts_layout)
+        return;
+
+    auto* output_group = new QGroupBox(tr("Manual translation"), this);
+    auto* output_group_layout = new QVBoxLayout(output_group);
+
+#ifdef _WIN32
+    {
+        auto* device_layout = new QHBoxLayout;
+        manual_analog_device = new QComboBox(this);
+        device_layout->addWidget(new QLabel(tr("Analog device"), this));
+        device_layout->addWidget(manual_analog_device);
+        output_group_layout->addLayout(device_layout);
+
+        manual_analog_device->addItem(tr("None"), QString{});
+
+        win32_joy_ctx joy_ctx;
+        for (const auto& joy : joy_ctx.get_joy_info())
+            manual_analog_device->addItem(joy.name + " " + joy.guid, joy.guid);
+
+        tie_setting(main.manual_analog_guid, manual_analog_device,
+                    [cb = manual_analog_device](const QString& guid) {
+                        const int idx = cb->findData(guid);
+                        return idx >= 0 ? idx : 0;
+                    },
+                    [](int, const QVariant& data) { return data.toString(); });
+    }
+#endif
+
+    auto* output_grid = new QGridLayout;
+
+    output_grid->addWidget(new QLabel(tr("Axis"), this), 0, 0);
+    output_grid->addWidget(new QLabel(tr("Control"), this), 0, 1);
+    output_grid->addWidget(new QLabel(tr("Min"), this), 0, 2);
+    output_grid->addWidget(new QLabel(tr("Max"), this), 0, 3);
+    output_grid->addWidget(new QLabel(tr("Speed"), this), 0, 4);
+    output_grid->addWidget(new QLabel(tr("Detents"), this), 0, 5);
+    output_grid->addWidget(new QLabel(tr("Points"), this), 0, 6);
+    output_grid->addWidget(new QLabel(tr("Delay"), this), 0, 7);
+    output_grid->addWidget(new QLabel(tr("Analog axis"), this), 0, 8);
+    output_grid->addWidget(new QLabel(tr("Invert"), this), 0, 9);
+    output_grid->addWidget(new QLabel(tr("Deadzone"), this), 0, 10);
+
+    struct row_def { const char* label; manual_translation_axis_settings* axis; };
+    const row_def rows[] = {
+        { "X", &main.manual_x },
+        { "Y", &main.manual_y },
+        { "Z", &main.manual_z },
+    };
+
+    for (int i = 0; i < 3; i++)
+    {
+        const auto& row = rows[i];
+        auto& widgets = manual_axes[i];
+
+        widgets.mode = new QComboBox(this);
+        widgets.mode->addItem(tr("Tracked"), translation_tracked);
+        widgets.mode->addItem(tr("Manual keys"), translation_manual_keys);
+#ifdef _WIN32
+        widgets.mode->addItem(tr("Manual analog"), translation_manual_analog);
+#endif
+        widgets.mode->addItem(tr("Disabled"), translation_disabled);
+
+        widgets.min = new QDoubleSpinBox(this);
+        widgets.max = new QDoubleSpinBox(this);
+        widgets.speed = new QDoubleSpinBox(this);
+        widgets.detents_enabled = new QCheckBox(this);
+        widgets.detent_positions = new QLineEdit(this);
+        widgets.detent_delay = new QDoubleSpinBox(this);
+        widgets.analog_axis = new QComboBox(this);
+        widgets.analog_invert = new QCheckBox(this);
+        widgets.analog_deadzone = new QDoubleSpinBox(this);
+
+        for (QDoubleSpinBox* spin : { widgets.min, widgets.max, widgets.speed })
+        {
+            spin->setDecimals(1);
+            spin->setSingleStep(1.0);
+            spin->setRange(-600.0, 600.0);
+            spin->setSuffix(tr(" cm"));
+        }
+
+        widgets.min->setRange(-600.0, 0.0);
+        widgets.max->setRange(0.0, 600.0);
+        widgets.speed->setRange(0.0, 600.0);
+        widgets.speed->setSuffix(tr(" cm/s"));
+
+        widgets.detent_positions->setPlaceholderText(tr("-33, 0, 33"));
+        widgets.detent_positions->setToolTip(tr("Comma, semicolon, or space separated detent points in cm"));
+
+        widgets.detent_delay->setDecimals(2);
+        widgets.detent_delay->setSingleStep(0.05);
+        widgets.detent_delay->setRange(0.0, 10.0);
+        widgets.detent_delay->setSuffix(tr(" s"));
+
+        widgets.analog_axis->addItem(tr("Disabled"), 0);
+        for (int axis_idx = 1; axis_idx <= 8; axis_idx++)
+            widgets.analog_axis->addItem(tr("Joystick axis #%1").arg(axis_idx), axis_idx);
+
+        widgets.analog_deadzone->setDecimals(2);
+        widgets.analog_deadzone->setSingleStep(0.01);
+        widgets.analog_deadzone->setRange(0.0, 1.0);
+
+        output_grid->addWidget(new QLabel(tr(row.label), this), i + 1, 0);
+        output_grid->addWidget(widgets.mode, i + 1, 1);
+        output_grid->addWidget(widgets.min, i + 1, 2);
+        output_grid->addWidget(widgets.max, i + 1, 3);
+        output_grid->addWidget(widgets.speed, i + 1, 4);
+        output_grid->addWidget(widgets.detents_enabled, i + 1, 5);
+        output_grid->addWidget(widgets.detent_positions, i + 1, 6);
+        output_grid->addWidget(widgets.detent_delay, i + 1, 7);
+        output_grid->addWidget(widgets.analog_axis, i + 1, 8);
+        output_grid->addWidget(widgets.analog_invert, i + 1, 9);
+        output_grid->addWidget(widgets.analog_deadzone, i + 1, 10);
+
+        tie_setting(row.axis->mode, widgets.mode);
+        tie_setting(row.axis->min, widgets.min);
+        tie_setting(row.axis->max, widgets.max);
+        tie_setting(row.axis->speed, widgets.speed);
+        tie_setting(row.axis->detents_enabled, widgets.detents_enabled);
+        tie_setting(row.axis->detent_positions, widgets.detent_positions);
+        tie_setting(row.axis->detent_delay, widgets.detent_delay);
+        tie_setting(row.axis->analog_axis, widgets.analog_axis);
+        tie_setting(row.axis->analog_invert, widgets.analog_invert);
+        tie_setting(row.axis->analog_deadzone, widgets.analog_deadzone);
+        connect(widgets.detents_enabled, &QCheckBox::toggled, this, [this](bool) { refresh_manual_translation_ui(); });
+        connect(widgets.mode,
+                static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged),
+                this,
+                [this](int) { refresh_manual_translation_ui(); });
+    }
+
+    output_group_layout->addLayout(output_grid);
+    output_layout->insertWidget(1, output_group);
+
+    auto* shortcuts_group = new QGroupBox(tr("Manual translation shortcuts"), this);
+    auto* shortcuts_grid = new QGridLayout(shortcuts_group);
+
+    shortcuts_grid->addWidget(new QLabel(tr("Action"), this), 0, 0);
+    shortcuts_grid->addWidget(new QLabel(tr("Binding"), this), 0, 1);
+
+    add_manual_shortcut_row(shortcuts_grid, 1, tr("Move X-"), manual_axes[0].negative_text, manual_axes[0].negative_bind);
+    add_manual_shortcut_row(shortcuts_grid, 2, tr("Move X+"), manual_axes[0].positive_text, manual_axes[0].positive_bind);
+    add_manual_shortcut_row(shortcuts_grid, 3, tr("Move Y-"), manual_axes[1].negative_text, manual_axes[1].negative_bind);
+    add_manual_shortcut_row(shortcuts_grid, 4, tr("Move Y+"), manual_axes[1].positive_text, manual_axes[1].positive_bind);
+    add_manual_shortcut_row(shortcuts_grid, 5, tr("Move Z-"), manual_axes[2].negative_text, manual_axes[2].negative_bind);
+    add_manual_shortcut_row(shortcuts_grid, 6, tr("Move Z+"), manual_axes[2].positive_text, manual_axes[2].positive_bind);
+
+    shortcuts_layout->insertWidget(1, shortcuts_group);
+}
+
+void options_dialog::refresh_manual_translation_ui()
+{
+    QComboBox* sources[] { ui.src_x, ui.src_y, ui.src_z };
+    QCheckBox* preinvert[] { ui.invert_x_pre, ui.invert_y_pre, ui.invert_z_pre };
+    bool any_manual_analog = false;
+
+    for (int i = 0; i < 3; i++)
+    {
+        const auto mode = (*main.manual_translation_axes[i]).mode();
+        const bool tracked = mode == translation_tracked;
+        const bool manual_keys = mode == translation_manual_keys;
+        const bool manual_analog = mode == translation_manual_analog;
+        any_manual_analog = any_manual_analog || manual_analog;
+
+        sources[i]->setEnabled(tracked);
+        preinvert[i]->setEnabled(tracked);
+
+        manual_axes[i].min->setEnabled(manual_keys || manual_analog);
+        manual_axes[i].max->setEnabled(manual_keys || manual_analog);
+        manual_axes[i].speed->setEnabled(manual_keys);
+        manual_axes[i].detents_enabled->setEnabled(manual_keys);
+        manual_axes[i].detent_positions->setEnabled(manual_keys && (*main.manual_translation_axes[i]).detents_enabled());
+        manual_axes[i].detent_delay->setEnabled(manual_keys && (*main.manual_translation_axes[i]).detents_enabled());
+        manual_axes[i].analog_axis->setEnabled(manual_analog);
+        manual_axes[i].analog_invert->setEnabled(manual_analog);
+        manual_axes[i].analog_deadzone->setEnabled(manual_analog);
+        manual_axes[i].negative_text->setEnabled(manual_keys);
+        manual_axes[i].negative_bind->setEnabled(manual_keys);
+        manual_axes[i].positive_text->setEnabled(manual_keys);
+        manual_axes[i].positive_bind->setEnabled(manual_keys);
+    }
+
+    if (manual_analog_device)
+        manual_analog_device->setEnabled(any_manual_analog);
 }
 
 options_dialog::options_dialog(std::unique_ptr<ITrackerDialog>& tracker_dialog_,
@@ -143,6 +371,8 @@ options_dialog::options_dialog(std::unique_ptr<ITrackerDialog>& tracker_dialog_,
     tie_setting(main.neck_enable, ui.neck_enable);
     tie_setting(main.neck_deferred_yaw, ui.neck_deferred_yaw);
 
+    setup_manual_translation_ui();
+
     const bool is_translation_disabled = with_global_settings_object([] (QSettings& s) {
         return s.value("disable-translation", false).toBool();
     });
@@ -189,15 +419,16 @@ options_dialog::options_dialog(std::unique_ptr<ITrackerDialog>& tracker_dialog_,
     for (const tmp& val_ : tuples)
     {
         tmp val = val_;
-        val.label->setText(kopts_to_string(val.opt));
-        connect(&val.opt.keycode,
-                static_cast<void (value_::*)(const QString&) const>(&value_::valueChanged),
-                val.label,
-                [=](const QString&) { val.label->setText(kopts_to_string(val.opt)); });
-        {
-            connect(val.button, &QPushButton::clicked, this, [=, this] { bind_key(val.opt, val.label); });
-        }
+        connect_binding_controls(val.opt, val.label, val.button);
     }
+
+    connect_binding_controls(main.manual_x.negative_key, manual_axes[0].negative_text, manual_axes[0].negative_bind);
+    connect_binding_controls(main.manual_x.positive_key, manual_axes[0].positive_text, manual_axes[0].positive_bind);
+    connect_binding_controls(main.manual_y.negative_key, manual_axes[1].negative_text, manual_axes[1].negative_bind);
+    connect_binding_controls(main.manual_y.positive_key, manual_axes[1].positive_text, manual_axes[1].positive_bind);
+    connect_binding_controls(main.manual_z.negative_key, manual_axes[2].negative_text, manual_axes[2].negative_bind);
+    connect_binding_controls(main.manual_z.positive_key, manual_axes[2].positive_text, manual_axes[2].positive_bind);
+    refresh_manual_translation_ui();
 
     auto add_module_tab = [this] (auto& place, auto&& dlg, const QString& label) {
         if (dlg && dlg->embeddable())
