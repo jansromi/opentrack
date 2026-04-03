@@ -1,5 +1,14 @@
 [<img src="https://github.com/opentrack/opentrack/actions/workflows/cmake.yml/badge.svg">](https://github.com/opentrack/opentrack/actions/workflows/cmake.yml)
 
+## What Changed In This Fork
+
+- Added a "Precision while held" mode that temporarily scales mapped yaw, pitch, and roll output while a bound key is held, with primary and alternate key bindings plus configurable precision scales in the options dialog.
+- Refactored the pipeline precision handling so the precision state is cleared on recenter and transitions cleanly when the precision key is released.
+- Added manual translation axes for X, Y, and Z, with per-axis tracked/manual/disabled modes, configurable limits, speed, and shortcut bindings.
+- Added Windows joystick analog control for manual translation, including per-axis joystick selection, invert, and deadzone settings.
+- Added manual axis detents for manual key control, with per-axis enable toggles, configurable detent positions, and hold-to-pass delay timing.
+- Updated the manual translation options UI and runtime pipeline so recentering and mode changes clear temporary manual-axis state cleanly.
+
 ## Intro
 
 opentrack is a program for tracking user's head rotation and transmitting it to flight simulation software and military-themed video games. Project home is located at <<https://github.com/opentrack/opentrack>>.
@@ -11,20 +20,6 @@ For the latest **downloads** visit <<https://github.com/opentrack/opentrack/rele
 Please first refer to <<https://github.com/opentrack/opentrack/wiki>>
 for [new user guide](https://github.com/opentrack/opentrack/wiki/Quick-Start-Guide-(WIP)), [frequent answers](https://github.com/opentrack/opentrack/wiki/common-issues), specific tracker/filter
 documentation. See also the [gameplay video](https://www.youtube.com/watch?v=XI73ul_FnBI) with opentrack set up.
-
-## What Changed In This Fork
-
-- Added a "Precision while held" mode that temporarily scales mapped yaw, pitch, and roll output while a bound key is held.
-- Added primary and alternate key bindings for the precision mode in the options dialog.
-- Added configurable precision scale values for yaw, pitch, and roll in the options dialog.
-- Refactored the pipeline precision handling so the precision state is cleared on recenter and transitions cleanly when the precision key is released.
-
-### 2026-04-03 update
-
-- Added manual translation axes for X, Y, and Z, with per-axis tracked/manual/disabled modes, configurable limits, speed, and shortcut bindings.
-- Added Windows joystick analog control for manual translation, including per-axis joystick selection, invert, and deadzone settings.
-- Added manual axis detents for manual key control, with per-axis enable toggles, configurable detent positions, and hold-to-pass delay timing.
-- Updated the manual translation options UI and runtime pipeline so recentering and mode changes clear temporary manual-axis state cleanly.
 
 ## Usage
 
