@@ -201,6 +201,96 @@ Pose_ reltrans::apply_neck(const rmat& R, int nz, bool disable_tz, bool deferred
     return neck;
 }
 
+manual_translation::manual_translation()
+{
+    for (auto& held : negative_held)
+        held = false;
+    for (auto& held : positive_held)
+        held = false;
+}
+
+int manual_translation::axis_index(Axis axis)
+{
+    const int idx = int(axis) - int(TX);
+    return idx >= 0 && idx < 3 ? idx : -1;
+}
+
+std::pair<double, double> manual_translation::limits(const manual_translation_axis_settings& axis)
+{
+    const double min = axis.min;
+    const double max = axis.max;
+    return min <= max ? std::pair{min, max} : std::pair{max, min};
+}
+
+void manual_translation::set_input(Axis axis, bool positive, bool held)
+{
+    const int idx = axis_index(axis);
+    if (idx < 0)
+        return;
+
+    if (positive)
+        positive_held[idx] = held;
+    else
+        negative_held[idx] = held;
+}
+
+void manual_translation::reset()
+{
+    positions = {};
+    timer_started = false;
+}
+
+Pose manual_translation::apply(const main_settings& s, const Pose& value, bool frozen)
+{
+    Pose output = value;
+
+    if (!timer_started)
+    {
+        timer.start();
+        timer_started = true;
+    }
+
+    const double dt = frozen ? 0.0 : timer.elapsed_seconds();
+    timer.start();
+
+    for (int i = 0; i < 3; i++)
+    {
+        const auto& axis = *s.manual_translation_axes[i];
+        const auto [min, max] = limits(axis);
+        positions[i] = std::clamp(positions[i], min, max);
+
+        switch (axis.mode)
+        {
+        case translation_tracked:
+            output(i) = value(i);
+            break;
+        case translation_manual_keys:
+        {
+            if (!frozen)
+            {
+                const bool negative = negative_held[i];
+                const bool positive = positive_held[i];
+
+                if (negative != positive)
+                {
+                    const double direction = positive ? 1.0 : -1.0;
+                    positions[i] += direction * axis.speed * dt;
+                    positions[i] = std::clamp(positions[i], min, max);
+                }
+            }
+
+            output(i) = positions[i];
+            break;
+        }
+        case translation_disabled:
+            output(i) = 0;
+            break;
+        }
+    }
+
+    return output;
+}
+
 pipeline::pipeline(const Mappings& m, const runtime_libraries& libs, TrackLogger& logger) :
     m(m), libs(libs), logger(logger)
 {
@@ -299,6 +389,7 @@ void pipeline::maybe_set_center_pose(const centering_state mode, const Pose& val
     {
         set_center(false);
         clear_precision();
+        manual.reset();
 
         if (libs.pFilter)
             libs.pFilter->center();
@@ -523,6 +614,7 @@ void pipeline::logic()
     const bool center_ordered = b.get(f_center | f_held_center) && tracking_started;
     const bool own_center_logic = center_ordered && libs.pTracker->center();
     const bool hold_ordered = b.get(f_enabled_p) ^ b.get(f_enabled_h);
+    const bool zero_ordered = b.get(f_zero);
 
     {
         Pose tmp;
@@ -582,6 +674,7 @@ void pipeline::logic()
     }
 
     value = apply_precision(value);
+    value = manual.apply(s, value, hold_ordered || zero_ordered);
 
     goto ok;
 
@@ -604,7 +697,7 @@ ok:
 
     set_center(false);
 
-    if (b.get(f_zero))
+    if (zero_ordered)
         for (int i = 0; i < 6; i++)
             value(i) = 0;
 
@@ -763,6 +856,10 @@ void pipeline::set_held_center(bool value)
 void pipeline::set_enabled(bool value) { b.set(f_enabled_h, value); }
 void pipeline::set_zero(bool value) { b.set(f_zero, value); }
 void pipeline::set_precision(bool value) { b.set(f_precision, value); }
+void pipeline::set_manual_translation_input(Axis axis, bool positive, bool held)
+{
+    manual.set_input(axis, positive, held);
+}
 
 void pipeline::toggle_zero() { b.negate(f_zero); }
 bool pipeline::is_zero() const { return !!(b.flags & f_zero); }

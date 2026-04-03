@@ -11,6 +11,13 @@
 #include <QObject>
 #include <QDialog>
 #include <QWidget>
+#include <QComboBox>
+#include <QDoubleSpinBox>
+#include <QGridLayout>
+#include <QLabel>
+#include <QPushButton>
+
+#include <array>
 
 class OTR_GUI_EXPORT options_dialog final : public QDialog
 {
@@ -46,9 +53,29 @@ private:
     std::function<void(bool)> pause_keybindings;
     Ui::options_dialog ui;
 
+    struct manual_axis_widgets final
+    {
+        QComboBox* mode = nullptr;
+        QDoubleSpinBox* min = nullptr;
+        QDoubleSpinBox* max = nullptr;
+        QDoubleSpinBox* speed = nullptr;
+        QLabel* negative_text = nullptr;
+        QPushButton* negative_bind = nullptr;
+        QLabel* positive_text = nullptr;
+        QPushButton* positive_bind = nullptr;
+    };
+
+    std::array<manual_axis_widgets, 3> manual_axes {};
+
     ITrackerDialog*  tracker_dialog = nullptr;
     IProtocolDialog* proto_dialog   = nullptr;
     IFilterDialog*   filter_dialog  = nullptr;
+
+    void setup_manual_translation_ui();
+    void add_manual_shortcut_row(QGridLayout* layout, int row, const QString& label,
+                                 QLabel*& text, QPushButton*& button);
+    void refresh_manual_translation_ui();
+    void connect_binding_controls(key_opts& kopts, QLabel* label, QPushButton* button);
 
 private slots:
     void doOK();
