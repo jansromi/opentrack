@@ -196,7 +196,10 @@ void options_dialog::setup_manual_translation_ui()
         tie_setting(row.axis->analog_axis, widgets.analog_axis);
         tie_setting(row.axis->analog_invert, widgets.analog_invert);
         tie_setting(row.axis->analog_deadzone, widgets.analog_deadzone);
-        tie_setting(row.axis->mode, this, [this](translation_control_mode) { refresh_manual_translation_ui(); });
+        connect(widgets.mode,
+                static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged),
+                this,
+                [this](int) { refresh_manual_translation_ui(); });
     }
 
     output_group_layout->addLayout(output_grid);
