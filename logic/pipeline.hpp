@@ -87,8 +87,17 @@ DEFINE_ENUM_OPERATORS(bit_flags);
 
 class OTR_LOGIC_EXPORT manual_translation final
 {
+    struct detent_state final
+    {
+        bool active = false;
+        double position = 0;
+        double held_time = 0;
+        int direction = 0;
+    };
+
     std::array<std::atomic_bool, 3> negative_held, positive_held;
     std::array<double, 3> positions {};
+    std::array<detent_state, 3> detents {};
     bool timer_started = false;
     Timer timer;
 #ifdef _WIN32
@@ -97,6 +106,11 @@ class OTR_LOGIC_EXPORT manual_translation final
 
     static int axis_index(Axis axis);
     static std::pair<double, double> limits(const main_settings_impl::manual_translation_axis_settings& axis);
+    static std::vector<double> detent_positions(const main_settings_impl::manual_translation_axis_settings& axis,
+                                                double min, double max);
+    static bool find_crossed_detent(const std::vector<double>& detents, double start, double target,
+                                    int direction, double& detent);
+    static void reset_detent_state(detent_state& state);
 #ifdef _WIN32
     bool poll_analog_axes(const main_settings& s, int* axes);
 #endif

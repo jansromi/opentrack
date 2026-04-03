@@ -25,6 +25,9 @@
 #include <algorithm>
 #include <cstdio>
 
+#include <QRegularExpression>
+#include <QStringList>
+
 #ifdef _WIN32
 #   include <windows.h>
 #   include <mmsystem.h>
@@ -222,6 +225,74 @@ std::pair<double, double> manual_translation::limits(const main_settings_impl::m
     return min <= max ? std::pair<double, double>{min, max} : std::pair<double, double>{max, min};
 }
 
+std::vector<double> manual_translation::detent_positions(const main_settings_impl::manual_translation_axis_settings& axis,
+                                                         double min, double max)
+{
+    std::vector<double> positions;
+
+    if (!bool(axis.detents_enabled))
+        return positions;
+
+    const QString text = axis.detent_positions;
+    if (text.isEmpty())
+        return positions;
+
+    const QStringList parts = text.split(QRegularExpression("[,;\\s]+"), Qt::SkipEmptyParts);
+    positions.reserve(size_t(parts.size()));
+
+    for (const QString& part : parts)
+    {
+        bool ok = false;
+        const double value = part.toDouble(&ok);
+
+        if (!ok || value < min || value > max)
+            continue;
+
+        positions.push_back(value);
+    }
+
+    std::sort(positions.begin(), positions.end());
+    positions.erase(std::unique(positions.begin(), positions.end(),
+                                [](double a, double b) { return std::fabs(a - b) <= 1e-6; }),
+                    positions.end());
+    return positions;
+}
+
+bool manual_translation::find_crossed_detent(const std::vector<double>& detents, double start, double target,
+                                             int direction, double& detent)
+{
+    constexpr double eps = 1e-6;
+
+    if (direction > 0)
+    {
+        for (double value : detents)
+            if (value > start + eps && value <= target + eps)
+            {
+                detent = value;
+                return true;
+            }
+    }
+    else if (direction < 0)
+    {
+        for (auto it = detents.rbegin(); it != detents.rend(); ++it)
+            if (*it < start - eps && *it >= target - eps)
+            {
+                detent = *it;
+                return true;
+            }
+    }
+
+    return false;
+}
+
+void manual_translation::reset_detent_state(detent_state& state)
+{
+    state.active = false;
+    state.position = 0;
+    state.held_time = 0;
+    state.direction = 0;
+}
+
 #ifdef _WIN32
 bool manual_translation::poll_analog_axes(const main_settings& s, int* axes)
 {
@@ -248,6 +319,8 @@ void manual_translation::set_input(Axis axis, bool positive, bool held)
 void manual_translation::reset()
 {
     positions = {};
+    for (auto& detent : detents)
+        reset_detent_state(detent);
     timer_started = false;
 }
 
@@ -274,25 +347,67 @@ Pose manual_translation::apply(const main_settings& s, const Pose& value, bool f
         const auto range = limits(axis);
         const double min = range.first;
         const double max = range.second;
+        const QString detent_text = axis.detent_positions;
         positions[i] = std::clamp(positions[i], min, max);
 
         switch (translation_control_mode(axis.mode))
         {
         case translation_tracked:
+            reset_detent_state(detents[i]);
             output(i) = value(i);
             break;
         case translation_manual_keys:
         {
+            auto& detent_state = detents[i];
+            const bool detents_active = bool(axis.detents_enabled) && !detent_text.trimmed().isEmpty();
+
+            if (!detents_active)
+                reset_detent_state(detent_state);
+
             if (!frozen)
             {
                 const bool negative = negative_held[i];
                 const bool positive = positive_held[i];
+                const int direction = negative != positive ? (positive ? 1 : -1) : 0;
 
-                if (negative != positive)
+                if (direction == 0)
+                    reset_detent_state(detent_state);
+                else if (detent_state.active && detent_state.direction != direction)
+                    reset_detent_state(detent_state);
+
+                double move_dt = dt;
+
+                if (detent_state.active)
                 {
-                    const double direction = positive ? 1.0 : -1.0;
-                    positions[i] += direction * double(axis.speed) * dt;
-                    positions[i] = std::clamp(positions[i], min, max);
+                    positions[i] = std::clamp(detent_state.position, min, max);
+                    detent_state.held_time += dt;
+
+                    const double delay = std::max(0.0, double(axis.detent_delay));
+                    if (detent_state.held_time < delay)
+                        move_dt = 0;
+                    else
+                    {
+                        move_dt = detent_state.held_time - delay;
+                        reset_detent_state(detent_state);
+                    }
+                }
+
+                if (direction != 0 && move_dt > 0)
+                {
+                    const double start = positions[i];
+                    const double target = std::clamp(start + double(direction) * double(axis.speed) * move_dt, min, max);
+                    double detent = 0;
+
+                    if (detents_active && find_crossed_detent(detent_positions(axis, min, max), start, target, direction, detent))
+                    {
+                        positions[i] = detent;
+                        detent_state.active = true;
+                        detent_state.position = detent;
+                        detent_state.held_time = 0;
+                        detent_state.direction = direction;
+                    }
+                    else
+                        positions[i] = target;
                 }
             }
 
@@ -301,6 +416,7 @@ Pose manual_translation::apply(const main_settings& s, const Pose& value, bool f
         }
         case translation_manual_analog:
         {
+            reset_detent_state(detents[i]);
 #ifdef _WIN32
             const int axis_idx = int(axis.analog_axis);
             if (analog_axes_valid && axis_idx > 0 && axis_idx <= int(std::size(analog_axes)))
@@ -331,6 +447,7 @@ Pose manual_translation::apply(const main_settings& s, const Pose& value, bool f
             break;
         }
         case translation_disabled:
+            reset_detent_state(detents[i]);
             output(i) = 0;
             break;
         }
