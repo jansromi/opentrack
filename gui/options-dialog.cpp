@@ -19,8 +19,13 @@
 #include <QDoubleSpinBox>
 #include <QGridLayout>
 #include <QGroupBox>
+#include <QHBoxLayout>
 #include <QLabel>
 #include <QVBoxLayout>
+
+#ifdef _WIN32
+#include "input/win32-joystick.hpp"
+#endif
 
 using namespace options;
 using namespace options::globals;
@@ -91,13 +96,41 @@ void options_dialog::setup_manual_translation_ui()
         return;
 
     auto* output_group = new QGroupBox(tr("Manual translation"), this);
-    auto* output_grid = new QGridLayout(output_group);
+    auto* output_group_layout = new QVBoxLayout(output_group);
+
+#ifdef _WIN32
+    {
+        auto* device_layout = new QHBoxLayout;
+        manual_analog_device = new QComboBox(this);
+        device_layout->addWidget(new QLabel(tr("Analog device"), this));
+        device_layout->addWidget(manual_analog_device);
+        output_group_layout->addLayout(device_layout);
+
+        manual_analog_device->addItem(tr("None"), QString{});
+
+        win32_joy_ctx joy_ctx;
+        for (const auto& joy : joy_ctx.get_joy_info())
+            manual_analog_device->addItem(joy.name + " " + joy.guid, joy.guid);
+
+        tie_setting(main.manual_analog_guid, manual_analog_device,
+                    [cb = manual_analog_device](const QString& guid) {
+                        const int idx = cb->findData(guid);
+                        return idx >= 0 ? idx : 0;
+                    },
+                    [](int, const QVariant& data) { return data.toString(); });
+    }
+#endif
+
+    auto* output_grid = new QGridLayout;
 
     output_grid->addWidget(new QLabel(tr("Axis"), this), 0, 0);
     output_grid->addWidget(new QLabel(tr("Control"), this), 0, 1);
     output_grid->addWidget(new QLabel(tr("Min"), this), 0, 2);
     output_grid->addWidget(new QLabel(tr("Max"), this), 0, 3);
     output_grid->addWidget(new QLabel(tr("Speed"), this), 0, 4);
+    output_grid->addWidget(new QLabel(tr("Analog axis"), this), 0, 5);
+    output_grid->addWidget(new QLabel(tr("Invert"), this), 0, 6);
+    output_grid->addWidget(new QLabel(tr("Deadzone"), this), 0, 7);
 
     struct row_def { const char* label; manual_translation_axis_settings* axis; };
     const row_def rows[] = {
@@ -114,11 +147,17 @@ void options_dialog::setup_manual_translation_ui()
         widgets.mode = new QComboBox(this);
         widgets.mode->addItem(tr("Tracked"), translation_tracked);
         widgets.mode->addItem(tr("Manual keys"), translation_manual_keys);
+#ifdef _WIN32
+        widgets.mode->addItem(tr("Manual analog"), translation_manual_analog);
+#endif
         widgets.mode->addItem(tr("Disabled"), translation_disabled);
 
         widgets.min = new QDoubleSpinBox(this);
         widgets.max = new QDoubleSpinBox(this);
         widgets.speed = new QDoubleSpinBox(this);
+        widgets.analog_axis = new QComboBox(this);
+        widgets.analog_invert = new QCheckBox(this);
+        widgets.analog_deadzone = new QDoubleSpinBox(this);
 
         for (QDoubleSpinBox* spin : { widgets.min, widgets.max, widgets.speed })
         {
@@ -133,19 +172,34 @@ void options_dialog::setup_manual_translation_ui()
         widgets.speed->setRange(0.0, 600.0);
         widgets.speed->setSuffix(tr(" cm/s"));
 
+        widgets.analog_axis->addItem(tr("Disabled"), 0);
+        for (int axis_idx = 1; axis_idx <= 8; axis_idx++)
+            widgets.analog_axis->addItem(tr("Joystick axis #%1").arg(axis_idx), axis_idx);
+
+        widgets.analog_deadzone->setDecimals(2);
+        widgets.analog_deadzone->setSingleStep(0.01);
+        widgets.analog_deadzone->setRange(0.0, 1.0);
+
         output_grid->addWidget(new QLabel(tr(row.label), this), i + 1, 0);
         output_grid->addWidget(widgets.mode, i + 1, 1);
         output_grid->addWidget(widgets.min, i + 1, 2);
         output_grid->addWidget(widgets.max, i + 1, 3);
         output_grid->addWidget(widgets.speed, i + 1, 4);
+        output_grid->addWidget(widgets.analog_axis, i + 1, 5);
+        output_grid->addWidget(widgets.analog_invert, i + 1, 6);
+        output_grid->addWidget(widgets.analog_deadzone, i + 1, 7);
 
         tie_setting(row.axis->mode, widgets.mode);
         tie_setting(row.axis->min, widgets.min);
         tie_setting(row.axis->max, widgets.max);
         tie_setting(row.axis->speed, widgets.speed);
+        tie_setting(row.axis->analog_axis, widgets.analog_axis);
+        tie_setting(row.axis->analog_invert, widgets.analog_invert);
+        tie_setting(row.axis->analog_deadzone, widgets.analog_deadzone);
         tie_setting(row.axis->mode, this, [this](translation_control_mode) { refresh_manual_translation_ui(); });
     }
 
+    output_group_layout->addLayout(output_grid);
     output_layout->insertWidget(1, output_group);
 
     auto* shortcuts_group = new QGroupBox(tr("Manual translation shortcuts"), this);
@@ -168,24 +222,33 @@ void options_dialog::refresh_manual_translation_ui()
 {
     QComboBox* sources[] { ui.src_x, ui.src_y, ui.src_z };
     QCheckBox* preinvert[] { ui.invert_x_pre, ui.invert_y_pre, ui.invert_z_pre };
+    bool any_manual_analog = false;
 
     for (int i = 0; i < 3; i++)
     {
         const auto mode = (*main.manual_translation_axes[i]).mode();
         const bool tracked = mode == translation_tracked;
         const bool manual_keys = mode == translation_manual_keys;
+        const bool manual_analog = mode == translation_manual_analog;
+        any_manual_analog = any_manual_analog || manual_analog;
 
         sources[i]->setEnabled(tracked);
         preinvert[i]->setEnabled(tracked);
 
-        manual_axes[i].min->setEnabled(manual_keys);
-        manual_axes[i].max->setEnabled(manual_keys);
+        manual_axes[i].min->setEnabled(manual_keys || manual_analog);
+        manual_axes[i].max->setEnabled(manual_keys || manual_analog);
         manual_axes[i].speed->setEnabled(manual_keys);
+        manual_axes[i].analog_axis->setEnabled(manual_analog);
+        manual_axes[i].analog_invert->setEnabled(manual_analog);
+        manual_axes[i].analog_deadzone->setEnabled(manual_analog);
         manual_axes[i].negative_text->setEnabled(manual_keys);
         manual_axes[i].negative_bind->setEnabled(manual_keys);
         manual_axes[i].positive_text->setEnabled(manual_keys);
         manual_axes[i].positive_bind->setEnabled(manual_keys);
     }
+
+    if (manual_analog_device)
+        manual_analog_device->setEnabled(any_manual_analog);
 }
 
 options_dialog::options_dialog(std::unique_ptr<ITrackerDialog>& tracker_dialog_,

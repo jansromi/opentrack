@@ -12,6 +12,7 @@
 #include <QDialog>
 #include <QWidget>
 #include <QComboBox>
+#include <QCheckBox>
 #include <QDoubleSpinBox>
 #include <QGridLayout>
 #include <QLabel>
@@ -59,6 +60,9 @@ private:
         QDoubleSpinBox* min = nullptr;
         QDoubleSpinBox* max = nullptr;
         QDoubleSpinBox* speed = nullptr;
+        QComboBox* analog_axis = nullptr;
+        QCheckBox* analog_invert = nullptr;
+        QDoubleSpinBox* analog_deadzone = nullptr;
         QLabel* negative_text = nullptr;
         QPushButton* negative_bind = nullptr;
         QLabel* positive_text = nullptr;
@@ -66,6 +70,7 @@ private:
     };
 
     std::array<manual_axis_widgets, 3> manual_axes {};
+    QComboBox* manual_analog_device = nullptr;
 
     ITrackerDialog*  tracker_dialog = nullptr;
     IProtocolDialog* proto_dialog   = nullptr;

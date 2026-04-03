@@ -15,6 +15,10 @@
 #include "options/options.hpp"
 #include "tracklogger.hpp"
 
+#ifdef _WIN32
+#include "input/win32-joystick.hpp"
+#endif
+
 #include <QMutex>
 #include <QThread>
 
@@ -87,9 +91,15 @@ class OTR_LOGIC_EXPORT manual_translation final
     std::array<double, 3> positions {};
     bool timer_started = false;
     Timer timer;
+#ifdef _WIN32
+    win32_joy_ctx joy_ctx;
+#endif
 
     static int axis_index(Axis axis);
     static std::pair<double, double> limits(const manual_translation_axis_settings& axis);
+#ifdef _WIN32
+    bool poll_analog_axes(const main_settings& s, int* axes);
+#endif
 
 public:
     manual_translation();
