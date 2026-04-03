@@ -19,7 +19,9 @@
 #include <QThread>
 
 #include <atomic>
+#include <array>
 #include <cmath>
+#include <utility>
 
 #include "export.hpp"
 
@@ -79,6 +81,24 @@ struct OTR_LOGIC_EXPORT bits
 
 DEFINE_ENUM_OPERATORS(bit_flags);
 
+class OTR_LOGIC_EXPORT manual_translation final
+{
+    std::array<std::atomic_bool, 3> negative_held, positive_held;
+    std::array<double, 3> positions {};
+    bool timer_started = false;
+    Timer timer;
+
+    static int axis_index(Axis axis);
+    static std::pair<double, double> limits(const manual_translation_axis_settings& axis);
+
+public:
+    manual_translation();
+
+    void set_input(Axis axis, bool positive, bool held);
+    void reset();
+    Pose apply(const main_settings& s, const Pose& value, bool frozen);
+};
+
 class OTR_LOGIC_EXPORT pipeline : private QThread
 {
     Q_OBJECT
@@ -99,6 +119,7 @@ class OTR_LOGIC_EXPORT pipeline : private QThread
     TrackLogger& logger;
 
     reltrans rel;
+    manual_translation manual;
 
     struct {
         Pose P;
@@ -147,6 +168,7 @@ public:
     void set_enabled(bool value);
     void set_zero(bool value);
     void set_precision(bool value);
+    void set_manual_translation_input(Axis axis, bool positive, bool held);
 };
 
 } // ns pipeline_impl
