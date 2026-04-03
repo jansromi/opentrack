@@ -215,11 +215,11 @@ int manual_translation::axis_index(Axis axis)
     return idx >= 0 && idx < 3 ? idx : -1;
 }
 
-std::pair<double, double> manual_translation::limits(const manual_translation_axis_settings& axis)
+std::pair<double, double> manual_translation::limits(const main_settings_impl::manual_translation_axis_settings& axis)
 {
-    const double min = axis.min;
-    const double max = axis.max;
-    return min <= max ? std::pair{min, max} : std::pair{max, min};
+    const double min = double(axis.min);
+    const double max = double(axis.max);
+    return min <= max ? std::pair<double, double>{min, max} : std::pair<double, double>{max, min};
 }
 
 #ifdef _WIN32
@@ -271,10 +271,12 @@ Pose manual_translation::apply(const main_settings& s, const Pose& value, bool f
     for (int i = 0; i < 3; i++)
     {
         const auto& axis = *s.manual_translation_axes[i];
-        const auto [min, max] = limits(axis);
+        const auto range = limits(axis);
+        const double min = range.first;
+        const double max = range.second;
         positions[i] = std::clamp(positions[i], min, max);
 
-        switch (axis.mode)
+        switch (translation_control_mode(axis.mode))
         {
         case translation_tracked:
             output(i) = value(i);
@@ -289,7 +291,7 @@ Pose manual_translation::apply(const main_settings& s, const Pose& value, bool f
                 if (negative != positive)
                 {
                     const double direction = positive ? 1.0 : -1.0;
-                    positions[i] += direction * axis.speed * dt;
+                    positions[i] += direction * double(axis.speed) * dt;
                     positions[i] = std::clamp(positions[i], min, max);
                 }
             }
@@ -300,13 +302,13 @@ Pose manual_translation::apply(const main_settings& s, const Pose& value, bool f
         case translation_manual_analog:
         {
 #ifdef _WIN32
-            const int axis_idx = axis.analog_axis;
+            const int axis_idx = int(axis.analog_axis);
             if (analog_axes_valid && axis_idx > 0 && axis_idx <= int(std::size(analog_axes)))
             {
                 double position = analog_axes[axis_idx - 1] / double(win32_joy_ctx::joy_axis_size);
                 position = std::clamp(position, -1.0, 1.0);
 
-                if (axis.analog_invert)
+                if (bool(axis.analog_invert))
                     position = -position;
 
                 const double deadzone = std::clamp(double(axis.analog_deadzone), 0.0, 0.99);
@@ -316,7 +318,7 @@ Pose manual_translation::apply(const main_settings& s, const Pose& value, bool f
                 else
                     position = std::copysign((magnitude - deadzone) / (1.0 - deadzone), position);
 
-                positions[i] = position >= 0 ? position * max : position * std::abs(min);
+                positions[i] = position >= 0 ? position * max : position * std::fabs(min);
             }
             else if (frozen)
                 positions[i] = std::clamp(positions[i], min, max);

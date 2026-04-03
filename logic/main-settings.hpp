@@ -158,4 +158,5 @@ struct OTR_LOGIC_EXPORT main_settings final
 } // ns main_settings_impl
 
 using module_settings = main_settings_impl::module_settings;
+using manual_translation_axis_settings = main_settings_impl::manual_translation_axis_settings;
 using main_settings = main_settings_impl::main_settings;

@@ -96,7 +96,7 @@ class OTR_LOGIC_EXPORT manual_translation final
 #endif
 
     static int axis_index(Axis axis);
-    static std::pair<double, double> limits(const manual_translation_axis_settings& axis);
+    static std::pair<double, double> limits(const main_settings_impl::manual_translation_axis_settings& axis);
 #ifdef _WIN32
     bool poll_analog_axes(const main_settings& s, int* axes);
 #endif
