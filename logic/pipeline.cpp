@@ -222,6 +222,17 @@ std::pair<double, double> manual_translation::limits(const manual_translation_ax
     return min <= max ? std::pair{min, max} : std::pair{max, min};
 }
 
+#ifdef _WIN32
+bool manual_translation::poll_analog_axes(const main_settings& s, int* axes)
+{
+    const QString guid = s.manual_analog_guid;
+    if (guid.isEmpty())
+        return false;
+
+    return joy_ctx.poll_axis(guid, axes);
+}
+#endif
+
 void manual_translation::set_input(Axis axis, bool positive, bool held)
 {
     const int idx = axis_index(axis);
@@ -243,6 +254,10 @@ void manual_translation::reset()
 Pose manual_translation::apply(const main_settings& s, const Pose& value, bool frozen)
 {
     Pose output = value;
+#ifdef _WIN32
+    int analog_axes[8] {};
+    const bool analog_axes_valid = !frozen && poll_analog_axes(s, analog_axes);
+#endif
 
     if (!timer_started)
     {
@@ -280,6 +295,37 @@ Pose manual_translation::apply(const main_settings& s, const Pose& value, bool f
             }
 
             output(i) = positions[i];
+            break;
+        }
+        case translation_manual_analog:
+        {
+#ifdef _WIN32
+            const int axis_idx = axis.analog_axis;
+            if (analog_axes_valid && axis_idx > 0 && axis_idx <= int(std::size(analog_axes)))
+            {
+                double position = analog_axes[axis_idx - 1] / double(win32_joy_ctx::joy_axis_size);
+                position = std::clamp(position, -1.0, 1.0);
+
+                if (axis.analog_invert)
+                    position = -position;
+
+                const double deadzone = std::clamp(double(axis.analog_deadzone), 0.0, 0.99);
+                const double magnitude = std::abs(position);
+                if (magnitude <= deadzone)
+                    position = 0;
+                else
+                    position = std::copysign((magnitude - deadzone) / (1.0 - deadzone), position);
+
+                positions[i] = position >= 0 ? position * max : position * std::abs(min);
+            }
+            else if (frozen)
+                positions[i] = std::clamp(positions[i], min, max);
+            else
+                positions[i] = 0;
+#else
+            positions[i] = 0;
+#endif
+            output(i) = std::clamp(positions[i], min, max);
             break;
         }
         case translation_disabled:
