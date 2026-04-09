@@ -641,7 +641,6 @@ void pipeline::clear_precision()
     precision.was_active = false;
     precision.input_anchor = {};
     precision.output_anchor = {};
-    precision.committed_offset = {};
 }
 
 void pipeline::clear_tailview()
@@ -831,18 +830,15 @@ Pose pipeline::apply_precision(Pose value)
 {
     const bool active = b.get(f_precision);
 
-    auto add_committed_offset = [this](Pose pose) {
-        pose(Yaw) += precision.committed_offset(Yaw);
-        pose(Pitch) += precision.committed_offset(Pitch);
-        pose(Roll) += precision.committed_offset(Roll);
-        return pose;
-    };
-
     auto apply_active_precision = [this](const Pose& pose) {
         Pose out = pose;
-        out(Yaw) = precision.output_anchor(Yaw) + (pose(Yaw) - precision.input_anchor(Yaw)) * s.precision_yaw_scale;
-        out(Pitch) = precision.output_anchor(Pitch) + (pose(Pitch) - precision.input_anchor(Pitch)) * s.precision_pitch_scale;
-        out(Roll) = precision.output_anchor(Roll) + (pose(Roll) - precision.input_anchor(Roll)) * s.precision_roll_scale;
+        const double yaw_delta = wrap_degrees(pose(Yaw) - precision.input_anchor(Yaw));
+        const double pitch_delta = wrap_degrees(pose(Pitch) - precision.input_anchor(Pitch));
+        const double roll_delta = wrap_degrees(pose(Roll) - precision.input_anchor(Roll));
+
+        out(Yaw) = precision.output_anchor(Yaw) + yaw_delta * s.precision_yaw_scale;
+        out(Pitch) = precision.output_anchor(Pitch) + pitch_delta * s.precision_pitch_scale;
+        out(Roll) = precision.output_anchor(Roll) + roll_delta * s.precision_roll_scale;
         return out;
     };
 
@@ -851,7 +847,7 @@ Pose pipeline::apply_precision(Pose value)
         if (!precision.was_active)
         {
             precision.input_anchor = value;
-            precision.output_anchor = add_committed_offset(value);
+            precision.output_anchor = value;
             precision.was_active = true;
         }
 
@@ -859,18 +855,9 @@ Pose pipeline::apply_precision(Pose value)
     }
 
     if (precision.was_active)
-    {
-        const Pose released_output = apply_active_precision(value);
-        precision.committed_offset = {};
-        precision.committed_offset(Yaw) = released_output(Yaw) - value(Yaw);
-        precision.committed_offset(Pitch) = released_output(Pitch) - value(Pitch);
-        precision.committed_offset(Roll) = released_output(Roll) - value(Roll);
-        precision.input_anchor = {};
-        precision.output_anchor = {};
-        precision.was_active = false;
-    }
+        clear_precision();
 
-    return add_committed_offset(value);
+    return value;
 }
 
 Pose pipeline::apply_tailview(Pose value, bool suppressed)

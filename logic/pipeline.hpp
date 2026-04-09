@@ -184,7 +184,7 @@ class OTR_LOGIC_EXPORT pipeline : private QThread
 
     struct {
         bool was_active = false;
-        Pose input_anchor, output_anchor, committed_offset;
+        Pose input_anchor, output_anchor;
     } precision;
 
     tailview_inputs tailview_input;
