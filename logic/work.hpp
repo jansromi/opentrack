@@ -66,12 +66,19 @@ public:
         key_tuple(s.key_precision1, [this](bool x) { pipeline_.set_precision(x); }, false),
         key_tuple(s.key_precision2, [this](bool x) { pipeline_.set_precision(x); }, false),
 
+        key_tuple(s.key_tailview_left1, [this](bool x) { pipeline_.set_tailview_left(x); }, false),
+        key_tuple(s.key_tailview_left2, [this](bool x) { pipeline_.set_tailview_left(x); }, false),
+        key_tuple(s.key_tailview_right1, [this](bool x) { pipeline_.set_tailview_right(x); }, false),
+        key_tuple(s.key_tailview_right2, [this](bool x) { pipeline_.set_tailview_right(x); }, false),
+
         key_tuple(s.manual_x.negative_key, [this](bool x) { pipeline_.set_manual_translation_input(TX, false, x); }, false),
         key_tuple(s.manual_x.positive_key, [this](bool x) { pipeline_.set_manual_translation_input(TX, true, x); }, false),
         key_tuple(s.manual_y.negative_key, [this](bool x) { pipeline_.set_manual_translation_input(TY, false, x); }, false),
         key_tuple(s.manual_y.positive_key, [this](bool x) { pipeline_.set_manual_translation_input(TY, true, x); }, false),
         key_tuple(s.manual_z.negative_key, [this](bool x) { pipeline_.set_manual_translation_input(TZ, false, x); }, false),
         key_tuple(s.manual_z.positive_key, [this](bool x) { pipeline_.set_manual_translation_input(TZ, true, x); }, false),
+        key_tuple(s.manual_yaw.negative_key, [this](bool x) { pipeline_.set_manual_translation_input(Yaw, false, x); }, false),
+        key_tuple(s.manual_yaw.positive_key, [this](bool x) { pipeline_.set_manual_translation_input(Yaw, true, x); }, false),
     };
 
     Work(const Mappings& m, QFrame* frame,

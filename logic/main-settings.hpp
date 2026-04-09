@@ -55,11 +55,14 @@ struct OTR_LOGIC_EXPORT manual_translation_axis_settings final
     value<double> analog_deadzone;
     key_opts negative_key, positive_key;
 
-    manual_translation_axis_settings(bundle b, const QString& prefix) :
+    manual_translation_axis_settings(bundle b, const QString& prefix,
+                                     double min_default = -75.0,
+                                     double max_default = 75.0,
+                                     double speed_default = 30.0) :
         mode(b, prefix + "-mode", translation_tracked),
-        min(b, prefix + "-min", -75.0),
-        max(b, prefix + "-max", 75.0),
-        speed(b, prefix + "-speed", 30.0),
+        min(b, prefix + "-min", min_default),
+        max(b, prefix + "-max", max_default),
+        speed(b, prefix + "-speed", speed_default),
         detents_enabled(b, prefix + "-detents-enabled", false),
         detent_positions(b, prefix + "-detent-positions", ""),
         detent_delay(b, prefix + "-detent-delay", 0.8),
@@ -68,6 +71,27 @@ struct OTR_LOGIC_EXPORT manual_translation_axis_settings final
         analog_deadzone(b, prefix + "-analog-deadzone", 0.05),
         negative_key(b, prefix + "-negative"),
         positive_key(b, prefix + "-positive")
+    {}
+};
+
+struct OTR_LOGIC_EXPORT tailview_settings final
+{
+    value<double> min_yaw_deg;
+    value<double> center_yaw_deg;
+    value<double> max_yaw_deg;
+    value<double> center_deadzone_deg;
+    value<double> precision_yaw_scale;
+    value<double> precision_pitch_scale;
+    value<double> precision_roll_scale;
+
+    tailview_settings(bundle b, const QString& prefix) :
+        min_yaw_deg(b, prefix + "-min-yaw-deg", 140.0),
+        center_yaw_deg(b, prefix + "-center-yaw-deg", 160.0),
+        max_yaw_deg(b, prefix + "-max-yaw-deg", 175.0),
+        center_deadzone_deg(b, prefix + "-center-deadzone-deg", 2.0),
+        precision_yaw_scale(b, prefix + "-precision-yaw-scale", 0.35),
+        precision_pitch_scale(b, prefix + "-precision-pitch-scale", 0.50),
+        precision_roll_scale(b, prefix + "-precision-roll-scale", 0.50)
     {}
 };
 
@@ -120,10 +144,12 @@ struct OTR_LOGIC_EXPORT main_settings final
     value<double> precision_pitch_scale { b, "precision-pitch-scale", 0.7 };
     value<double> precision_roll_scale { b, "precision-roll-scale", 1.0 };
     value<QString> manual_analog_guid { b, "manual-translation-analog-guid", "" };
+    tailview_settings tailview { b, "tailview" };
     manual_translation_axis_settings manual_x { b, "manual-translation-x" };
     manual_translation_axis_settings manual_y { b, "manual-translation-y" };
     manual_translation_axis_settings manual_z { b, "manual-translation-z" };
-    manual_translation_axis_settings* manual_translation_axes[3] { &manual_x, &manual_y, &manual_z };
+    manual_translation_axis_settings manual_yaw { b, "manual-translation-yaw", -180.0, 180.0, 60.0 };
+    manual_translation_axis_settings* manual_translation_axes[4] { &manual_x, &manual_y, &manual_z, &manual_yaw };
 
     key_opts key_start_tracking1 { b, "start-tracking" };
     key_opts key_start_tracking2 { b, "start-tracking-alt" };
@@ -155,6 +181,11 @@ struct OTR_LOGIC_EXPORT main_settings final
     key_opts key_precision1 { b, "precision" };
     key_opts key_precision2 { b, "precision-alt" };
 
+    key_opts key_tailview_left1 { b, "tailview-left" };
+    key_opts key_tailview_left2 { b, "tailview-left-alt" };
+    key_opts key_tailview_right1 { b, "tailview-right" };
+    key_opts key_tailview_right2 { b, "tailview-right-alt" };
+
     value<bool> tracklogging_enabled { b, "tracklogging-enabled", false };
     value<QString> tracklogging_filename { b, "tracklogging-filename", {} };
 
@@ -165,4 +196,5 @@ struct OTR_LOGIC_EXPORT main_settings final
 
 using module_settings = main_settings_impl::module_settings;
 using manual_translation_axis_settings = main_settings_impl::manual_translation_axis_settings;
+using tailview_settings = main_settings_impl::tailview_settings;
 using main_settings = main_settings_impl::main_settings;

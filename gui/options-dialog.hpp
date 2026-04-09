@@ -73,7 +73,7 @@ private:
         QPushButton* positive_bind = nullptr;
     };
 
-    std::array<manual_axis_widgets, 3> manual_axes {};
+    std::array<manual_axis_widgets, 4> manual_axes {};
     QComboBox* manual_analog_device = nullptr;
 
     ITrackerDialog*  tracker_dialog = nullptr;

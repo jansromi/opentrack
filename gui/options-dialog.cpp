@@ -136,14 +136,20 @@ void options_dialog::setup_manual_translation_ui()
     output_grid->addWidget(new QLabel(tr("Invert"), this), 0, 9);
     output_grid->addWidget(new QLabel(tr("Deadzone"), this), 0, 10);
 
-    struct row_def { const char* label; manual_translation_axis_settings* axis; };
+    struct row_def
+    {
+        const char* label;
+        manual_translation_axis_settings* axis;
+        bool rotational;
+    };
     const row_def rows[] = {
-        { "X", &main.manual_x },
-        { "Y", &main.manual_y },
-        { "Z", &main.manual_z },
+        { "X", &main.manual_x, false },
+        { "Y", &main.manual_y, false },
+        { "Z", &main.manual_z, false },
+        { "Yaw", &main.manual_yaw, true },
     };
 
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < int(sizeof(rows) / sizeof(rows[0])); i++)
     {
         const auto& row = rows[i];
         auto& widgets = manual_axes[i];
@@ -171,16 +177,27 @@ void options_dialog::setup_manual_translation_ui()
             spin->setDecimals(1);
             spin->setSingleStep(1.0);
             spin->setRange(-600.0, 600.0);
-            spin->setSuffix(tr(" cm"));
+            spin->setSuffix(row.rotational ? tr("°") : tr(" cm"));
         }
 
-        widgets.min->setRange(-600.0, 0.0);
-        widgets.max->setRange(0.0, 600.0);
-        widgets.speed->setRange(0.0, 600.0);
-        widgets.speed->setSuffix(tr(" cm/s"));
-
-        widgets.detent_positions->setPlaceholderText(tr("-33, 0, 33"));
-        widgets.detent_positions->setToolTip(tr("Comma, semicolon, or space separated detent points in cm"));
+        if (row.rotational)
+        {
+            widgets.min->setRange(-180.0, 0.0);
+            widgets.max->setRange(0.0, 180.0);
+            widgets.speed->setRange(0.0, 360.0);
+            widgets.speed->setSuffix(tr("°/s"));
+            widgets.detent_positions->setPlaceholderText(tr("-135, 0, 135"));
+            widgets.detent_positions->setToolTip(tr("Comma, semicolon, or space separated detent points in degrees"));
+        }
+        else
+        {
+            widgets.min->setRange(-600.0, 0.0);
+            widgets.max->setRange(0.0, 600.0);
+            widgets.speed->setRange(0.0, 600.0);
+            widgets.speed->setSuffix(tr(" cm/s"));
+            widgets.detent_positions->setPlaceholderText(tr("-33, 0, 33"));
+            widgets.detent_positions->setToolTip(tr("Comma, semicolon, or space separated detent points in cm"));
+        }
 
         widgets.detent_delay->setDecimals(2);
         widgets.detent_delay->setSingleStep(0.05);
@@ -239,17 +256,19 @@ void options_dialog::setup_manual_translation_ui()
     add_manual_shortcut_row(shortcuts_grid, 4, tr("Move Y+"), manual_axes[1].positive_text, manual_axes[1].positive_bind);
     add_manual_shortcut_row(shortcuts_grid, 5, tr("Move Z-"), manual_axes[2].negative_text, manual_axes[2].negative_bind);
     add_manual_shortcut_row(shortcuts_grid, 6, tr("Move Z+"), manual_axes[2].positive_text, manual_axes[2].positive_bind);
+    add_manual_shortcut_row(shortcuts_grid, 7, tr("Move Yaw-"), manual_axes[3].negative_text, manual_axes[3].negative_bind);
+    add_manual_shortcut_row(shortcuts_grid, 8, tr("Move Yaw+"), manual_axes[3].positive_text, manual_axes[3].positive_bind);
 
     shortcuts_layout->insertWidget(1, shortcuts_group);
 }
 
 void options_dialog::refresh_manual_translation_ui()
 {
-    QComboBox* sources[] { ui.src_x, ui.src_y, ui.src_z };
-    QCheckBox* preinvert[] { ui.invert_x_pre, ui.invert_y_pre, ui.invert_z_pre };
+    QComboBox* sources[] { ui.src_x, ui.src_y, ui.src_z, ui.src_yaw };
+    QCheckBox* preinvert[] { ui.invert_x_pre, ui.invert_y_pre, ui.invert_z_pre, ui.invert_yaw_pre };
     bool any_manual_analog = false;
 
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < int(manual_axes.size()); i++)
     {
         const auto mode = (*main.manual_translation_axes[i]).mode();
         const bool tracked = mode == translation_tracked;
@@ -327,6 +346,13 @@ options_dialog::options_dialog(std::unique_ptr<ITrackerDialog>& tracker_dialog_,
     tie_setting(main.precision_yaw_scale, ui.precision_yaw_scale);
     tie_setting(main.precision_pitch_scale, ui.precision_pitch_scale);
     tie_setting(main.precision_roll_scale, ui.precision_roll_scale);
+    tie_setting(main.tailview.min_yaw_deg, ui.tailview_min_yaw_deg);
+    tie_setting(main.tailview.center_yaw_deg, ui.tailview_center_yaw_deg);
+    tie_setting(main.tailview.max_yaw_deg, ui.tailview_max_yaw_deg);
+    tie_setting(main.tailview.center_deadzone_deg, ui.tailview_center_deadzone_deg);
+    tie_setting(main.tailview.precision_yaw_scale, ui.tailview_precision_yaw_scale);
+    tie_setting(main.tailview.precision_pitch_scale, ui.tailview_precision_pitch_scale);
+    tie_setting(main.tailview.precision_roll_scale, ui.tailview_precision_roll_scale);
 
     tie_setting(main.a_x.zero, ui.pos_tx);
     tie_setting(main.a_y.zero, ui.pos_ty);
@@ -403,6 +429,12 @@ options_dialog::options_dialog(std::unique_ptr<ITrackerDialog>& tracker_dialog_,
         { main.key_precision1, ui.precision_text, ui.bind_precision },
         { main.key_precision2, ui.precision_text_2, ui.bind_precision_2 },
 
+        { main.key_tailview_left1, ui.tailview_left_text, ui.bind_tailview_left },
+        { main.key_tailview_left2, ui.tailview_left_text_2, ui.bind_tailview_left_2 },
+
+        { main.key_tailview_right1, ui.tailview_right_text, ui.bind_tailview_right },
+        { main.key_tailview_right2, ui.tailview_right_text_2, ui.bind_tailview_right_2 },
+
         { main.key_start_tracking1, ui.start_tracking_text, ui.bind_start },
         { main.key_start_tracking2, ui.start_tracking_text_2, ui.bind_start_2 },
 
@@ -428,6 +460,8 @@ options_dialog::options_dialog(std::unique_ptr<ITrackerDialog>& tracker_dialog_,
     connect_binding_controls(main.manual_y.positive_key, manual_axes[1].positive_text, manual_axes[1].positive_bind);
     connect_binding_controls(main.manual_z.negative_key, manual_axes[2].negative_text, manual_axes[2].negative_bind);
     connect_binding_controls(main.manual_z.positive_key, manual_axes[2].positive_text, manual_axes[2].positive_bind);
+    connect_binding_controls(main.manual_yaw.negative_key, manual_axes[3].negative_text, manual_axes[3].negative_bind);
+    connect_binding_controls(main.manual_yaw.positive_key, manual_axes[3].positive_text, manual_axes[3].positive_bind);
     refresh_manual_translation_ui();
 
     auto add_module_tab = [this] (auto& place, auto&& dlg, const QString& label) {

@@ -27,6 +27,8 @@
 #include <cmath>
 #include <utility>
 
+#include <QMutexLocker>
+
 #include "export.hpp"
 
 namespace pipeline_impl {
@@ -95,9 +97,11 @@ class OTR_LOGIC_EXPORT manual_translation final
         int direction = 0;
     };
 
-    std::array<std::atomic_bool, 3> negative_held, positive_held;
-    std::array<double, 3> positions {};
-    std::array<detent_state, 3> detents {};
+    static constexpr int axis_count = 4;
+
+    std::array<std::atomic_bool, axis_count> negative_held, positive_held;
+    std::array<double, axis_count> positions {};
+    std::array<detent_state, axis_count> detents {};
     bool timer_started = false;
     Timer timer;
 #ifdef _WIN32
@@ -127,6 +131,31 @@ class OTR_LOGIC_EXPORT pipeline : private QThread
 {
     Q_OBJECT
 
+    enum class tailview_direction : int
+    {
+        none = 0,
+        left = -1,
+        right = 1,
+    };
+
+    struct tailview_inputs final
+    {
+        bool left_held = false;
+        bool right_held = false;
+        tailview_direction preferred = tailview_direction::none;
+        mutable QMutex lock;
+
+        void set(tailview_direction direction, bool held);
+        tailview_direction active_direction() const;
+    };
+
+    struct tailview_runtime final
+    {
+        bool was_active = false;
+        tailview_direction direction = tailview_direction::none;
+        Pose input_anchor, output_anchor;
+    };
+
     mutable QMutex mtx;
     main_settings s;
     const Mappings& m;
@@ -155,6 +184,9 @@ class OTR_LOGIC_EXPORT pipeline : private QThread
         Pose input_anchor, output_anchor, committed_offset;
     } precision;
 
+    tailview_inputs tailview_input;
+    tailview_runtime tailview;
+
     time_units::ms backlog_time {};
 
     bool tracking_started = false;
@@ -165,12 +197,14 @@ class OTR_LOGIC_EXPORT pipeline : private QThread
     bool maybe_enable_center_on_tracking_started();
     void maybe_set_center_pose(const centering_state mode, const Pose& value, bool own_center_logic);
     void clear_precision();
+    void clear_tailview();
     Pose apply_center(const centering_state mode, Pose value) const;
     Pose apply_camera_offset(Pose value) const;
     std::tuple<Pose, Pose, vec6_bool> get_selected_axis_values(const Pose& newpose) const;
     Pose maybe_apply_filter(const Pose& value) const;
     Pose apply_reltrans(Pose value, vec6_bool disabled, bool centerp);
     Pose apply_precision(Pose value);
+    Pose apply_tailview(Pose value, bool suppressed);
     Pose apply_zero_pos(Pose value) const;
 
     bits b;
@@ -192,6 +226,8 @@ public:
     void set_enabled(bool value);
     void set_zero(bool value);
     void set_precision(bool value);
+    void set_tailview_left(bool value);
+    void set_tailview_right(bool value);
     void set_manual_translation_input(Axis axis, bool positive, bool held);
 };
 

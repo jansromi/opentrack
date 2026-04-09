@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>548</width>
-    <height>612</height>
+    <height>760</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -876,6 +876,172 @@
             </property>
            </widget>
           </item>
+          <item row="10" column="0">
+           <widget class="QLabel" name="label_tailview_left">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="cursor">
+             <cursorShape>WhatsThisCursor</cursorShape>
+            </property>
+            <property name="toolTip">
+             <string>Snap to the configured rear-left tail view while held.</string>
+            </property>
+            <property name="text">
+             <string>Tail view left</string>
+            </property>
+           </widget>
+          </item>
+          <item row="10" column="1">
+           <widget class="QLabel" name="tailview_left_text">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
+              <horstretch>255</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>100</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+          <item row="10" column="2">
+           <widget class="QPushButton" name="bind_tailview_left">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="text">
+             <string>Bind</string>
+            </property>
+           </widget>
+          </item>
+          <item row="10" column="3">
+           <widget class="QLabel" name="tailview_left_text_2">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
+              <horstretch>255</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>100</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+          <item row="10" column="4">
+           <widget class="QPushButton" name="bind_tailview_left_2">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="text">
+             <string>Bind</string>
+            </property>
+           </widget>
+          </item>
+          <item row="11" column="0">
+           <widget class="QLabel" name="label_tailview_right">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="cursor">
+             <cursorShape>WhatsThisCursor</cursorShape>
+            </property>
+            <property name="toolTip">
+             <string>Snap to the configured rear-right tail view while held.</string>
+            </property>
+            <property name="text">
+             <string>Tail view right</string>
+            </property>
+           </widget>
+          </item>
+          <item row="11" column="1">
+           <widget class="QLabel" name="tailview_right_text">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
+              <horstretch>255</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>100</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+          <item row="11" column="2">
+           <widget class="QPushButton" name="bind_tailview_right">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="text">
+             <string>Bind</string>
+            </property>
+           </widget>
+          </item>
+          <item row="11" column="3">
+           <widget class="QLabel" name="tailview_right_text_2">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
+              <horstretch>255</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>100</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+          <item row="11" column="4">
+           <widget class="QPushButton" name="bind_tailview_right_2">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="text">
+             <string>Bind</string>
+            </property>
+           </widget>
+          </item>
          </layout>
         </widget>
        </item>
@@ -977,7 +1143,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QGroupBox" name="groupBox_precision">
+       <widget class="QGroupBox" name="groupBox_precision">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
            <horstretch>0</horstretch>
@@ -1063,6 +1229,194 @@
             </property>
             <property name="value">
              <double>1.000000000000000</double>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="groupBox_tailview">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="title">
+          <string>Tail View</string>
+         </property>
+         <layout class="QGridLayout" name="gridLayout_tailview">
+          <item row="0" column="0">
+           <widget class="QLabel" name="label_tailview_min_yaw">
+            <property name="text">
+             <string>Min yaw</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QDoubleSpinBox" name="tailview_min_yaw_deg">
+            <property name="decimals">
+             <number>1</number>
+            </property>
+            <property name="maximum">
+             <double>180.000000000000000</double>
+            </property>
+            <property name="singleStep">
+             <double>1.000000000000000</double>
+            </property>
+            <property name="value">
+             <double>140.000000000000000</double>
+            </property>
+            <property name="suffix">
+             <string>°</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="label_tailview_center_yaw">
+            <property name="text">
+             <string>Center yaw</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QDoubleSpinBox" name="tailview_center_yaw_deg">
+            <property name="decimals">
+             <number>1</number>
+            </property>
+            <property name="maximum">
+             <double>180.000000000000000</double>
+            </property>
+            <property name="singleStep">
+             <double>1.000000000000000</double>
+            </property>
+            <property name="value">
+             <double>160.000000000000000</double>
+            </property>
+            <property name="suffix">
+             <string>°</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="0">
+           <widget class="QLabel" name="label_tailview_max_yaw">
+            <property name="text">
+             <string>Max yaw</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <widget class="QDoubleSpinBox" name="tailview_max_yaw_deg">
+            <property name="decimals">
+             <number>1</number>
+            </property>
+            <property name="maximum">
+             <double>180.000000000000000</double>
+            </property>
+            <property name="singleStep">
+             <double>1.000000000000000</double>
+            </property>
+            <property name="value">
+             <double>175.000000000000000</double>
+            </property>
+            <property name="suffix">
+             <string>°</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="0">
+           <widget class="QLabel" name="label_tailview_center_deadzone">
+            <property name="text">
+             <string>Center deadzone</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="1">
+           <widget class="QDoubleSpinBox" name="tailview_center_deadzone_deg">
+            <property name="decimals">
+             <number>1</number>
+            </property>
+            <property name="maximum">
+             <double>45.000000000000000</double>
+            </property>
+            <property name="singleStep">
+             <double>0.500000000000000</double>
+            </property>
+            <property name="value">
+             <double>2.000000000000000</double>
+            </property>
+            <property name="suffix">
+             <string>°</string>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="0">
+           <widget class="QLabel" name="label_tailview_precision_yaw">
+            <property name="text">
+             <string>Yaw scale</string>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="1">
+           <widget class="QDoubleSpinBox" name="tailview_precision_yaw_scale">
+            <property name="decimals">
+             <number>2</number>
+            </property>
+            <property name="maximum">
+             <double>1.000000000000000</double>
+            </property>
+            <property name="singleStep">
+             <double>0.050000000000000</double>
+            </property>
+            <property name="value">
+             <double>0.350000000000000</double>
+            </property>
+           </widget>
+          </item>
+          <item row="5" column="0">
+           <widget class="QLabel" name="label_tailview_precision_pitch">
+            <property name="text">
+             <string>Pitch scale</string>
+            </property>
+           </widget>
+          </item>
+          <item row="5" column="1">
+           <widget class="QDoubleSpinBox" name="tailview_precision_pitch_scale">
+            <property name="decimals">
+             <number>2</number>
+            </property>
+            <property name="maximum">
+             <double>1.000000000000000</double>
+            </property>
+            <property name="singleStep">
+             <double>0.050000000000000</double>
+            </property>
+            <property name="value">
+             <double>0.500000000000000</double>
+            </property>
+           </widget>
+          </item>
+          <item row="6" column="0">
+           <widget class="QLabel" name="label_tailview_precision_roll">
+            <property name="text">
+             <string>Roll scale</string>
+            </property>
+           </widget>
+          </item>
+          <item row="6" column="1">
+           <widget class="QDoubleSpinBox" name="tailview_precision_roll_scale">
+            <property name="decimals">
+             <number>2</number>
+            </property>
+            <property name="maximum">
+             <double>1.000000000000000</double>
+            </property>
+            <property name="singleStep">
+             <double>0.050000000000000</double>
+            </property>
+            <property name="value">
+             <double>0.500000000000000</double>
             </property>
            </widget>
           </item>
@@ -2750,6 +3104,8 @@
   <tabstop>bind_toggle_tracking</tabstop>
   <tabstop>bind_restart_tracking</tabstop>
   <tabstop>bind_precision</tabstop>
+  <tabstop>bind_tailview_left</tabstop>
+  <tabstop>bind_tailview_right</tabstop>
   <tabstop>bind_center_2</tabstop>
   <tabstop>bind_toggle_2</tabstop>
   <tabstop>bind_toggle_held_2</tabstop>
@@ -2760,12 +3116,21 @@
   <tabstop>bind_toggle_tracking_2</tabstop>
   <tabstop>bind_restart_tracking_2</tabstop>
   <tabstop>bind_precision_2</tabstop>
+  <tabstop>bind_tailview_left_2</tabstop>
+  <tabstop>bind_tailview_right_2</tabstop>
   <tabstop>center_at_startup</tabstop>
   <tabstop>cbox_centering</tabstop>
   <tabstop>disable_translation</tabstop>
   <tabstop>precision_yaw_scale</tabstop>
   <tabstop>precision_pitch_scale</tabstop>
   <tabstop>precision_roll_scale</tabstop>
+  <tabstop>tailview_min_yaw_deg</tabstop>
+  <tabstop>tailview_center_yaw_deg</tabstop>
+  <tabstop>tailview_max_yaw_deg</tabstop>
+  <tabstop>tailview_center_deadzone_deg</tabstop>
+  <tabstop>tailview_precision_yaw_scale</tabstop>
+  <tabstop>tailview_precision_pitch_scale</tabstop>
+  <tabstop>tailview_precision_roll_scale</tabstop>
   <tabstop>trayp</tabstop>
   <tabstop>tray_start</tabstop>
   <tabstop>src_yaw</tabstop>

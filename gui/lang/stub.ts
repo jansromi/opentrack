@@ -424,6 +424,26 @@ Press &quot;clear calibration&quot; to remove any calibration data pertaining to
         <source>Extra rotation adjustment for reducing axis bleed on asymmetrically mounted cameras.</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Move Yaw-</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Move Yaw+</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>°/s</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>-135, 0, 135</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Comma, semicolon, or space separated detent points in degrees</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>process_detector</name>
