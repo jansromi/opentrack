@@ -97,6 +97,23 @@ struct OTR_LOGIC_EXPORT tailview_settings final
     {}
 };
 
+struct OTR_LOGIC_EXPORT upview_settings final
+{
+    value<double> center_pitch_deg;
+    value<double> center_deadzone_deg;
+    value<double> precision_yaw_scale;
+    value<double> precision_pitch_scale;
+    value<double> precision_roll_scale;
+
+    upview_settings(bundle b, const QString& prefix) :
+        center_pitch_deg(b, prefix + "-center-pitch-deg", 90.0),
+        center_deadzone_deg(b, prefix + "-center-deadzone-deg", 2.0),
+        precision_yaw_scale(b, prefix + "-precision-yaw-scale", 0.50),
+        precision_pitch_scale(b, prefix + "-precision-pitch-scale", 0.35),
+        precision_roll_scale(b, prefix + "-precision-roll-scale", 0.50)
+    {}
+};
+
 struct OTR_LOGIC_EXPORT module_settings
 {
     bundle b { make_bundle("modules") };
@@ -147,6 +164,7 @@ struct OTR_LOGIC_EXPORT main_settings final
     value<double> precision_roll_scale { b, "precision-roll-scale", 1.0 };
     value<QString> manual_analog_guid { b, "manual-translation-analog-guid", "" };
     tailview_settings tailview { b, "tailview" };
+    upview_settings upview { b, "upview" };
     manual_translation_axis_settings manual_x { b, "manual-translation-x" };
     manual_translation_axis_settings manual_y { b, "manual-translation-y" };
     manual_translation_axis_settings manual_z { b, "manual-translation-z" };
@@ -187,6 +205,8 @@ struct OTR_LOGIC_EXPORT main_settings final
     key_opts key_tailview_left2 { b, "tailview-left-alt" };
     key_opts key_tailview_right1 { b, "tailview-right" };
     key_opts key_tailview_right2 { b, "tailview-right-alt" };
+    key_opts key_upview1 { b, "upview" };
+    key_opts key_upview2 { b, "upview-alt" };
 
     value<bool> tracklogging_enabled { b, "tracklogging-enabled", false };
     value<QString> tracklogging_filename { b, "tracklogging-filename", {} };
@@ -199,4 +219,5 @@ struct OTR_LOGIC_EXPORT main_settings final
 using module_settings = main_settings_impl::module_settings;
 using manual_translation_axis_settings = main_settings_impl::manual_translation_axis_settings;
 using tailview_settings = main_settings_impl::tailview_settings;
+using upview_settings = main_settings_impl::upview_settings;
 using main_settings = main_settings_impl::main_settings;

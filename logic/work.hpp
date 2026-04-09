@@ -70,6 +70,8 @@ public:
         key_tuple(s.key_tailview_left2, [this](bool x) { pipeline_.set_tailview_left(x); }, false),
         key_tuple(s.key_tailview_right1, [this](bool x) { pipeline_.set_tailview_right(x); }, false),
         key_tuple(s.key_tailview_right2, [this](bool x) { pipeline_.set_tailview_right(x); }, false),
+        key_tuple(s.key_upview1, [this](bool x) { pipeline_.set_upview(x); }, false),
+        key_tuple(s.key_upview2, [this](bool x) { pipeline_.set_upview(x); }, false),
 
         key_tuple(s.manual_x.negative_key, [this](bool x) { pipeline_.set_manual_translation_input(TX, false, x); }, false),
         key_tuple(s.manual_x.positive_key, [this](bool x) { pipeline_.set_manual_translation_input(TX, true, x); }, false),

@@ -378,6 +378,11 @@ options_dialog::options_dialog(std::unique_ptr<ITrackerDialog>& tracker_dialog_,
     tie_setting(main.tailview.precision_yaw_scale, ui.tailview_precision_yaw_scale);
     tie_setting(main.tailview.precision_pitch_scale, ui.tailview_precision_pitch_scale);
     tie_setting(main.tailview.precision_roll_scale, ui.tailview_precision_roll_scale);
+    tie_setting(main.upview.center_pitch_deg, ui.upview_center_pitch_deg);
+    tie_setting(main.upview.center_deadzone_deg, ui.upview_center_deadzone_deg);
+    tie_setting(main.upview.precision_yaw_scale, ui.upview_precision_yaw_scale);
+    tie_setting(main.upview.precision_pitch_scale, ui.upview_precision_pitch_scale);
+    tie_setting(main.upview.precision_roll_scale, ui.upview_precision_roll_scale);
 
     tie_setting(main.a_x.zero, ui.pos_tx);
     tie_setting(main.a_y.zero, ui.pos_ty);
@@ -459,6 +464,9 @@ options_dialog::options_dialog(std::unique_ptr<ITrackerDialog>& tracker_dialog_,
 
         { main.key_tailview_right1, ui.tailview_right_text, ui.bind_tailview_right },
         { main.key_tailview_right2, ui.tailview_right_text_2, ui.bind_tailview_right_2 },
+
+        { main.key_upview1, ui.upview_text, ui.bind_upview },
+        { main.key_upview2, ui.upview_text_2, ui.bind_upview_2 },
 
         { main.key_start_tracking1, ui.start_tracking_text, ui.bind_start },
         { main.key_start_tracking2, ui.start_tracking_text_2, ui.bind_start_2 },

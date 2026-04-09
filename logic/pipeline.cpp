@@ -651,6 +651,13 @@ void pipeline::clear_tailview()
     tailview.output_anchor = {};
 }
 
+void pipeline::clear_upview()
+{
+    upview.was_active = false;
+    upview.input_anchor = {};
+    upview.output_anchor = {};
+}
+
 void pipeline::maybe_set_center_pose(const centering_state mode, const Pose& value, bool own_center_logic)
 {
     if (b.get(f_center | f_held_center))
@@ -658,6 +665,7 @@ void pipeline::maybe_set_center_pose(const centering_state mode, const Pose& val
         set_center(false);
         clear_precision();
         clear_tailview();
+        clear_upview();
         manual.reset();
 
         if (libs.pFilter)
@@ -904,6 +912,43 @@ Pose pipeline::apply_tailview(Pose value, bool suppressed)
     return out;
 }
 
+Pose pipeline::apply_upview(Pose value, bool suppressed)
+{
+    const bool active = upview_held.load(std::memory_order_relaxed);
+
+    if (!active || suppressed)
+    {
+        clear_upview();
+        return value;
+    }
+
+    const auto& cfg = s.upview;
+    const double center_pitch = std::clamp(double(cfg.center_pitch_deg), -180.0, 180.0);
+    const double deadzone = std::max(0.0, double(cfg.center_deadzone_deg));
+    const double yaw_scale = std::clamp(double(cfg.precision_yaw_scale), 0.0, 1.0);
+    const double pitch_scale = std::clamp(double(cfg.precision_pitch_scale), 0.0, 1.0);
+    const double roll_scale = std::clamp(double(cfg.precision_roll_scale), 0.0, 1.0);
+
+    if (!upview.was_active)
+    {
+        upview.was_active = true;
+        upview.input_anchor = value;
+        upview.output_anchor = value;
+        upview.output_anchor(Pitch) = center_pitch;
+    }
+
+    Pose out = value;
+    const double yaw_delta = wrap_degrees(value(Yaw) - upview.input_anchor(Yaw));
+    const double pitch_delta = wrap_degrees(value(Pitch) - upview.input_anchor(Pitch));
+    const double roll_delta = wrap_degrees(value(Roll) - upview.input_anchor(Roll));
+
+    out(Yaw) = upview.output_anchor(Yaw) + yaw_delta * yaw_scale;
+    out(Pitch) = upview.output_anchor(Pitch) + apply_center_deadzone(pitch_delta, deadzone) * pitch_scale;
+    out(Roll) = upview.output_anchor(Roll) + roll_delta * roll_scale;
+
+    return out;
+}
+
 void pipeline::logic()
 {
     using namespace euler;
@@ -916,7 +961,8 @@ void pipeline::logic()
     const bool own_center_logic = center_ordered && libs.pTracker->center();
     const bool hold_ordered = b.get(f_enabled_p) ^ b.get(f_enabled_h);
     const bool zero_ordered = b.get(f_zero);
-    const bool tailview_requested = tailview_input.active_direction() != tailview_direction::none;
+    const bool upview_requested = upview_held.load(std::memory_order_relaxed);
+    const bool tailview_requested = !upview_requested && tailview_input.active_direction() != tailview_direction::none;
 
     {
         Pose tmp;
@@ -975,7 +1021,7 @@ void pipeline::logic()
         nan_check(value);
     }
 
-    if (tailview_requested)
+    if (tailview_requested || upview_requested)
         clear_precision();
     else
         value = apply_precision(value);
@@ -1015,7 +1061,8 @@ ok:
         if (m(i).opts.invert_post)
             value(i) = -value(i);
 
-    value = apply_tailview(value, hold_ordered || zero_ordered);
+    value = apply_tailview(value, hold_ordered || zero_ordered || upview_requested);
+    value = apply_upview(value, hold_ordered || zero_ordered);
 
     libs.pProtocol->pose(value, raw);
 
@@ -1165,6 +1212,7 @@ void pipeline::set_zero(bool value) { b.set(f_zero, value); }
 void pipeline::set_precision(bool value) { b.set(f_precision, value); }
 void pipeline::set_tailview_left(bool value) { tailview_input.set(tailview_direction::left, value); }
 void pipeline::set_tailview_right(bool value) { tailview_input.set(tailview_direction::right, value); }
+void pipeline::set_upview(bool value) { upview_held.store(value, std::memory_order_relaxed); }
 void pipeline::set_manual_translation_input(Axis axis, bool positive, bool held)
 {
     manual.set_input(axis, positive, held);

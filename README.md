@@ -8,6 +8,7 @@
 - Added Windows joystick analog control for manual translation, including per-axis joystick selection, invert, deadzone settings, and tracked-plus-analog combination modes.
 - Added manual axis detents for manual key control, with per-axis enable toggles, configurable detent positions, and hold-to-pass delay timing.
 - Updated the manual translation options UI and runtime pipeline so recentering and mode changes clear temporary manual-axis state cleanly.
+- Added hold-to-snap rear `Tail View` shortcuts with configurable anchor, deadzone, and follow scales, plus a matching configurable `Up View`.
 
 ## Intro
 

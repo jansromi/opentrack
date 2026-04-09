@@ -159,6 +159,12 @@ class OTR_LOGIC_EXPORT pipeline : private QThread
         Pose input_anchor, output_anchor;
     };
 
+    struct anchored_view_runtime final
+    {
+        bool was_active = false;
+        Pose input_anchor, output_anchor;
+    };
+
     mutable QMutex mtx;
     main_settings s;
     const Mappings& m;
@@ -187,8 +193,10 @@ class OTR_LOGIC_EXPORT pipeline : private QThread
         Pose input_anchor, output_anchor;
     } precision;
 
+    std::atomic_bool upview_held { false };
     tailview_inputs tailview_input;
     tailview_runtime tailview;
+    anchored_view_runtime upview;
 
     time_units::ms backlog_time {};
 
@@ -201,6 +209,7 @@ class OTR_LOGIC_EXPORT pipeline : private QThread
     void maybe_set_center_pose(const centering_state mode, const Pose& value, bool own_center_logic);
     void clear_precision();
     void clear_tailview();
+    void clear_upview();
     Pose apply_center(const centering_state mode, Pose value) const;
     Pose apply_camera_offset(Pose value) const;
     std::tuple<Pose, Pose, vec6_bool> get_selected_axis_values(const Pose& newpose) const;
@@ -208,6 +217,7 @@ class OTR_LOGIC_EXPORT pipeline : private QThread
     Pose apply_reltrans(Pose value, vec6_bool disabled, bool centerp);
     Pose apply_precision(Pose value);
     Pose apply_tailview(Pose value, bool suppressed);
+    Pose apply_upview(Pose value, bool suppressed);
     Pose apply_zero_pos(Pose value) const;
 
     bits b;
@@ -231,6 +241,7 @@ public:
     void set_precision(bool value);
     void set_tailview_left(bool value);
     void set_tailview_right(bool value);
+    void set_upview(bool value);
     void set_manual_translation_input(Axis axis, bool positive, bool held);
 };
 
