@@ -37,6 +37,8 @@ enum translation_control_mode : int
     translation_manual_keys = 1,
     translation_manual_analog = 2,
     translation_disabled = 3,
+    translation_tracked_manual_keys = 4,
+    translation_tracked_manual_analog = 5,
 };
 
 namespace main_settings_impl {

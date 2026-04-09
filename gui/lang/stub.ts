@@ -309,6 +309,26 @@ Press &quot;clear calibration&quot; to remove any calibration data pertaining to
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Tracked</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Tracked + manual keys</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Manual keys</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Tracked + manual analog</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Manual analog</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Destination</source>
         <translation type="unfinished"></translation>
     </message>

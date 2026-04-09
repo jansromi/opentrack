@@ -31,6 +31,29 @@
 using namespace options;
 using namespace options::globals;
 
+namespace {
+
+bool uses_tracking(translation_control_mode mode)
+{
+    return mode == translation_tracked ||
+           mode == translation_tracked_manual_keys ||
+           mode == translation_tracked_manual_analog;
+}
+
+bool uses_manual_keys(translation_control_mode mode)
+{
+    return mode == translation_manual_keys ||
+           mode == translation_tracked_manual_keys;
+}
+
+bool uses_manual_analog(translation_control_mode mode)
+{
+    return mode == translation_manual_analog ||
+           mode == translation_tracked_manual_analog;
+}
+
+} // ns
+
 QString options_dialog::kopts_to_string(const key_opts& kopts)
 {
     using namespace Qt::Literals::StringLiterals;
@@ -156,8 +179,10 @@ void options_dialog::setup_manual_translation_ui()
 
         widgets.mode = new QComboBox(this);
         widgets.mode->addItem(tr("Tracked"), translation_tracked);
+        widgets.mode->addItem(tr("Tracked + manual keys"), translation_tracked_manual_keys);
         widgets.mode->addItem(tr("Manual keys"), translation_manual_keys);
 #ifdef _WIN32
+        widgets.mode->addItem(tr("Tracked + manual analog"), translation_tracked_manual_analog);
         widgets.mode->addItem(tr("Manual analog"), translation_manual_analog);
 #endif
         widgets.mode->addItem(tr("Disabled"), translation_disabled);
@@ -270,10 +295,10 @@ void options_dialog::refresh_manual_translation_ui()
 
     for (int i = 0; i < int(manual_axes.size()); i++)
     {
-        const auto mode = (*main.manual_translation_axes[i]).mode();
-        const bool tracked = mode == translation_tracked;
-        const bool manual_keys = mode == translation_manual_keys;
-        const bool manual_analog = mode == translation_manual_analog;
+        const auto mode = translation_control_mode((*main.manual_translation_axes[i]).mode());
+        const bool tracked = uses_tracking(mode);
+        const bool manual_keys = uses_manual_keys(mode);
+        const bool manual_analog = uses_manual_analog(mode);
         any_manual_analog = any_manual_analog || manual_analog;
 
         sources[i]->setEnabled(tracked);

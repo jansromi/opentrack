@@ -102,6 +102,8 @@ class OTR_LOGIC_EXPORT manual_translation final
     std::array<std::atomic_bool, axis_count> negative_held, positive_held;
     std::array<double, axis_count> positions {};
     std::array<detent_state, axis_count> detents {};
+    std::array<translation_control_mode, axis_count> last_modes {};
+    std::array<bool, axis_count> mode_initialized {};
     bool timer_started = false;
     Timer timer;
 #ifdef _WIN32
@@ -114,6 +116,7 @@ class OTR_LOGIC_EXPORT manual_translation final
                                                 double min, double max);
     static bool find_crossed_detent(const std::vector<double>& detents, double start, double target,
                                     int direction, double& detent);
+    void reset_axis_state(int idx);
     static void reset_detent_state(detent_state& state);
 #ifdef _WIN32
     bool poll_analog_axes(const main_settings& s, int* axes);

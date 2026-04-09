@@ -59,6 +59,25 @@ double apply_center_deadzone(double delta, double deadzone)
     return std::copysign(magnitude - deadzone, delta);
 }
 
+bool uses_tracking(translation_control_mode mode)
+{
+    return mode == translation_tracked ||
+           mode == translation_tracked_manual_keys ||
+           mode == translation_tracked_manual_analog;
+}
+
+bool uses_manual_keys(translation_control_mode mode)
+{
+    return mode == translation_manual_keys ||
+           mode == translation_tracked_manual_keys;
+}
+
+bool uses_manual_analog(translation_control_mode mode)
+{
+    return mode == translation_manual_analog ||
+           mode == translation_tracked_manual_analog;
+}
+
 } // ns
 
 reltrans::reltrans() = default;
@@ -231,6 +250,8 @@ manual_translation::manual_translation()
         held = false;
     for (auto& held : positive_held)
         held = false;
+    last_modes.fill(translation_tracked);
+    mode_initialized.fill(false);
 }
 
 int manual_translation::axis_index(Axis axis)
@@ -306,6 +327,15 @@ bool manual_translation::find_crossed_detent(const std::vector<double>& detents,
     return false;
 }
 
+void manual_translation::reset_axis_state(int idx)
+{
+    if (idx < 0 || idx >= axis_count)
+        return;
+
+    positions[idx] = 0;
+    reset_detent_state(detents[idx]);
+}
+
 void manual_translation::reset_detent_state(detent_state& state)
 {
     state.active = false;
@@ -365,19 +395,31 @@ Pose manual_translation::apply(const main_settings& s, const Pose& value, bool f
     for (int i = 0; i < axis_count; i++)
     {
         const auto& axis = *s.manual_translation_axes[i];
+        const auto mode = translation_control_mode(axis.mode);
         const auto range = limits(axis);
         const double min = range.first;
         const double max = range.second;
         const QString detent_text = axis.detent_positions;
         positions[i] = std::clamp(positions[i], min, max);
 
-        switch (translation_control_mode(axis.mode))
+        if (!mode_initialized[i] || last_modes[i] != mode)
         {
-        case translation_tracked:
-            reset_detent_state(detents[i]);
-            output(i) = value(i);
-            break;
-        case translation_manual_keys:
+            reset_axis_state(i);
+            last_modes[i] = mode;
+            mode_initialized[i] = true;
+        }
+
+        const bool tracked = uses_tracking(mode);
+        const bool manual_keys = uses_manual_keys(mode);
+        const bool manual_analog = uses_manual_analog(mode);
+        const bool disabled = mode == translation_disabled;
+        double manual_value = 0;
+
+        if (disabled)
+        {
+            reset_axis_state(i);
+        }
+        else if (manual_keys)
         {
             auto& detent_state = detents[i];
             const bool detents_active = bool(axis.detents_enabled) && !detent_text.trimmed().isEmpty();
@@ -432,10 +474,9 @@ Pose manual_translation::apply(const main_settings& s, const Pose& value, bool f
                 }
             }
 
-            output(i) = positions[i];
-            break;
+            manual_value = positions[i];
         }
-        case translation_manual_analog:
+        else if (manual_analog)
         {
             reset_detent_state(detents[i]);
 #ifdef _WIN32
@@ -464,14 +505,15 @@ Pose manual_translation::apply(const main_settings& s, const Pose& value, bool f
 #else
             positions[i] = 0;
 #endif
-            output(i) = std::clamp(positions[i], min, max);
-            break;
+            manual_value = std::clamp(positions[i], min, max);
         }
-        case translation_disabled:
+        else
             reset_detent_state(detents[i]);
-            output(i) = 0;
-            break;
-        }
+
+        if (manual_keys)
+            manual_value = std::clamp(positions[i], min, max);
+
+        output(i) = disabled ? 0 : tracked ? value(i) + manual_value : manual_value;
     }
 
     return output;
