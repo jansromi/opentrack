@@ -27,6 +27,8 @@
 #include <cmath>
 #include <utility>
 
+#include <QMutexLocker>
+
 #include "export.hpp"
 
 namespace pipeline_impl {
@@ -70,6 +72,7 @@ enum bit_flags : unsigned {
     f_enabled_p      = 1 << 3,
     f_zero           = 1 << 4,
     f_precision      = 1 << 5,
+    f_precision_toggle = 1 << 6,
 };
 
 struct OTR_LOGIC_EXPORT bits
@@ -95,9 +98,14 @@ class OTR_LOGIC_EXPORT manual_translation final
         int direction = 0;
     };
 
-    std::array<std::atomic_bool, 3> negative_held, positive_held;
-    std::array<double, 3> positions {};
-    std::array<detent_state, 3> detents {};
+    static constexpr int axis_count = 4;
+
+    std::array<std::atomic_bool, axis_count> negative_held, positive_held;
+    std::array<double, axis_count> positions {};
+    std::array<double, axis_count> manual_values {};
+    std::array<detent_state, axis_count> detents {};
+    std::array<translation_control_mode, axis_count> last_modes {};
+    std::array<bool, axis_count> mode_initialized {};
     bool timer_started = false;
     Timer timer;
 #ifdef _WIN32
@@ -110,6 +118,7 @@ class OTR_LOGIC_EXPORT manual_translation final
                                                 double min, double max);
     static bool find_crossed_detent(const std::vector<double>& detents, double start, double target,
                                     int direction, double& detent);
+    void reset_axis_state(int idx);
     static void reset_detent_state(detent_state& state);
 #ifdef _WIN32
     bool poll_analog_axes(const main_settings& s, int* axes);
@@ -121,11 +130,43 @@ public:
     void set_input(Axis axis, bool positive, bool held);
     void reset();
     Pose apply(const main_settings& s, const Pose& value, bool frozen);
+    double manual_value(Axis axis) const;
 };
 
 class OTR_LOGIC_EXPORT pipeline : private QThread
 {
     Q_OBJECT
+
+    enum class tailview_direction : int
+    {
+        none = 0,
+        left = -1,
+        right = 1,
+    };
+
+    struct tailview_inputs final
+    {
+        bool left_held = false;
+        bool right_held = false;
+        tailview_direction preferred = tailview_direction::none;
+        mutable QMutex lock;
+
+        void set(tailview_direction direction, bool held);
+        tailview_direction active_direction() const;
+    };
+
+    struct tailview_runtime final
+    {
+        bool was_active = false;
+        tailview_direction direction = tailview_direction::none;
+        Pose input_anchor, output_anchor;
+    };
+
+    struct anchored_view_runtime final
+    {
+        bool was_active = false;
+        Pose input_anchor, output_anchor;
+    };
 
     mutable QMutex mtx;
     main_settings s;
@@ -152,8 +193,15 @@ class OTR_LOGIC_EXPORT pipeline : private QThread
 
     struct {
         bool was_active = false;
-        Pose input_anchor, output_anchor, committed_offset;
+        Pose input_anchor, output_anchor;
     } precision;
+
+    std::atomic_bool upview_held { false };
+    tailview_inputs tailview_input;
+    tailview_runtime tailview;
+    Pose tailview_lean;
+    Timer tailview_lean_timer;
+    anchored_view_runtime upview;
 
     time_units::ms backlog_time {};
 
@@ -165,12 +213,20 @@ class OTR_LOGIC_EXPORT pipeline : private QThread
     bool maybe_enable_center_on_tracking_started();
     void maybe_set_center_pose(const centering_state mode, const Pose& value, bool own_center_logic);
     void clear_precision();
+    void clear_tailview();
+    void clear_tailview_lean();
+    void clear_upview();
     Pose apply_center(const centering_state mode, Pose value) const;
     Pose apply_camera_offset(Pose value) const;
     std::tuple<Pose, Pose, vec6_bool> get_selected_axis_values(const Pose& newpose) const;
     Pose maybe_apply_filter(const Pose& value) const;
     Pose apply_reltrans(Pose value, vec6_bool disabled, bool centerp);
     Pose apply_precision(Pose value);
+    Pose apply_tailview(Pose value, bool suppressed);
+    void update_tailview_lean(tailview_direction direction);
+    Pose manual_yaw_lean() const;
+    Pose apply_lean(Pose value, bool zeroed);
+    Pose apply_upview(Pose value, bool suppressed);
     Pose apply_zero_pos(Pose value) const;
 
     bits b;
@@ -185,6 +241,7 @@ public:
     void toggle_zero();
     bool is_zero() const;
     void toggle_enabled();
+    void toggle_precision();
     bool is_enabled() const;
 
     void set_center(bool value);
@@ -192,6 +249,9 @@ public:
     void set_enabled(bool value);
     void set_zero(bool value);
     void set_precision(bool value);
+    void set_tailview_left(bool value);
+    void set_tailview_right(bool value);
+    void set_upview(bool value);
     void set_manual_translation_input(Axis axis, bool positive, bool held);
 };
 

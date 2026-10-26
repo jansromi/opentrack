@@ -31,6 +31,29 @@
 using namespace options;
 using namespace options::globals;
 
+namespace {
+
+bool uses_tracking(translation_control_mode mode)
+{
+    return mode == translation_tracked ||
+           mode == translation_tracked_manual_keys ||
+           mode == translation_tracked_manual_analog;
+}
+
+bool uses_manual_keys(translation_control_mode mode)
+{
+    return mode == translation_manual_keys ||
+           mode == translation_tracked_manual_keys;
+}
+
+bool uses_manual_analog(translation_control_mode mode)
+{
+    return mode == translation_manual_analog ||
+           mode == translation_tracked_manual_analog;
+}
+
+} // ns
+
 QString options_dialog::kopts_to_string(const key_opts& kopts)
 {
     using namespace Qt::Literals::StringLiterals;
@@ -136,22 +159,30 @@ void options_dialog::setup_manual_translation_ui()
     output_grid->addWidget(new QLabel(tr("Invert"), this), 0, 9);
     output_grid->addWidget(new QLabel(tr("Deadzone"), this), 0, 10);
 
-    struct row_def { const char* label; manual_translation_axis_settings* axis; };
+    struct row_def
+    {
+        const char* label;
+        manual_translation_axis_settings* axis;
+        bool rotational;
+    };
     const row_def rows[] = {
-        { "X", &main.manual_x },
-        { "Y", &main.manual_y },
-        { "Z", &main.manual_z },
+        { "X", &main.manual_x, false },
+        { "Y", &main.manual_y, false },
+        { "Z", &main.manual_z, false },
+        { "Yaw", &main.manual_yaw, true },
     };
 
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < int(sizeof(rows) / sizeof(rows[0])); i++)
     {
         const auto& row = rows[i];
         auto& widgets = manual_axes[i];
 
         widgets.mode = new QComboBox(this);
         widgets.mode->addItem(tr("Tracked"), translation_tracked);
+        widgets.mode->addItem(tr("Tracked + manual keys"), translation_tracked_manual_keys);
         widgets.mode->addItem(tr("Manual keys"), translation_manual_keys);
 #ifdef _WIN32
+        widgets.mode->addItem(tr("Tracked + manual analog"), translation_tracked_manual_analog);
         widgets.mode->addItem(tr("Manual analog"), translation_manual_analog);
 #endif
         widgets.mode->addItem(tr("Disabled"), translation_disabled);
@@ -171,16 +202,27 @@ void options_dialog::setup_manual_translation_ui()
             spin->setDecimals(1);
             spin->setSingleStep(1.0);
             spin->setRange(-600.0, 600.0);
-            spin->setSuffix(tr(" cm"));
+            spin->setSuffix(row.rotational ? tr("°") : tr(" cm"));
         }
 
-        widgets.min->setRange(-600.0, 0.0);
-        widgets.max->setRange(0.0, 600.0);
-        widgets.speed->setRange(0.0, 600.0);
-        widgets.speed->setSuffix(tr(" cm/s"));
-
-        widgets.detent_positions->setPlaceholderText(tr("-33, 0, 33"));
-        widgets.detent_positions->setToolTip(tr("Comma, semicolon, or space separated detent points in cm"));
+        if (row.rotational)
+        {
+            widgets.min->setRange(-180.0, 0.0);
+            widgets.max->setRange(0.0, 180.0);
+            widgets.speed->setRange(0.0, 360.0);
+            widgets.speed->setSuffix(tr("°/s"));
+            widgets.detent_positions->setPlaceholderText(tr("-135, 0, 135"));
+            widgets.detent_positions->setToolTip(tr("Comma, semicolon, or space separated detent points in degrees"));
+        }
+        else
+        {
+            widgets.min->setRange(-600.0, 0.0);
+            widgets.max->setRange(0.0, 600.0);
+            widgets.speed->setRange(0.0, 600.0);
+            widgets.speed->setSuffix(tr(" cm/s"));
+            widgets.detent_positions->setPlaceholderText(tr("-33, 0, 33"));
+            widgets.detent_positions->setToolTip(tr("Comma, semicolon, or space separated detent points in cm"));
+        }
 
         widgets.detent_delay->setDecimals(2);
         widgets.detent_delay->setSingleStep(0.05);
@@ -225,6 +267,54 @@ void options_dialog::setup_manual_translation_ui()
     }
 
     output_group_layout->addLayout(output_grid);
+
+    {
+        auto* lean_grid = new QGridLayout;
+        auto* lean_start = new QDoubleSpinBox(this);
+        auto* lean_full = new QDoubleSpinBox(this);
+        auto* lean_x = new QDoubleSpinBox(this);
+        auto* lean_y = new QDoubleSpinBox(this);
+        auto* lean_z = new QDoubleSpinBox(this);
+        auto* lean_invert_x = new QCheckBox(tr("Invert sideways lean"), this);
+
+        for (QDoubleSpinBox* spin : { lean_start, lean_full })
+        {
+            spin->setDecimals(1);
+            spin->setSingleStep(1.0);
+            spin->setRange(0.0, 180.0);
+            spin->setSuffix(tr("°"));
+        }
+
+        for (QDoubleSpinBox* spin : { lean_x, lean_y, lean_z })
+        {
+            spin->setDecimals(1);
+            spin->setSingleStep(1.0);
+            spin->setRange(-50.0, 50.0);
+            spin->setSuffix(tr(" cm"));
+        }
+
+        lean_grid->addWidget(new QLabel(tr("Yaw lean"), this), 1, 0);
+        lean_grid->addWidget(new QLabel(tr("Lean start"), this), 0, 1);
+        lean_grid->addWidget(new QLabel(tr("Lean full"), this), 0, 2);
+        lean_grid->addWidget(new QLabel(tr("Lean sideways"), this), 0, 3);
+        lean_grid->addWidget(new QLabel(tr("Lean up"), this), 0, 4);
+        lean_grid->addWidget(new QLabel(tr("Lean forward"), this), 0, 5);
+        lean_grid->addWidget(lean_start, 1, 1);
+        lean_grid->addWidget(lean_full, 1, 2);
+        lean_grid->addWidget(lean_x, 1, 3);
+        lean_grid->addWidget(lean_y, 1, 4);
+        lean_grid->addWidget(lean_z, 1, 5);
+        lean_grid->addWidget(lean_invert_x, 1, 6);
+
+        tie_setting(main.manual_yaw_lean.start_deg, lean_start);
+        tie_setting(main.manual_yaw_lean.full_deg, lean_full);
+        tie_setting(main.manual_yaw_lean.x_cm, lean_x);
+        tie_setting(main.manual_yaw_lean.y_cm, lean_y);
+        tie_setting(main.manual_yaw_lean.z_cm, lean_z);
+        tie_setting(main.manual_yaw_lean.invert_x, lean_invert_x);
+
+        output_group_layout->addLayout(lean_grid);
+    }
     output_layout->insertWidget(1, output_group);
 
     auto* shortcuts_group = new QGroupBox(tr("Manual translation shortcuts"), this);
@@ -239,22 +329,24 @@ void options_dialog::setup_manual_translation_ui()
     add_manual_shortcut_row(shortcuts_grid, 4, tr("Move Y+"), manual_axes[1].positive_text, manual_axes[1].positive_bind);
     add_manual_shortcut_row(shortcuts_grid, 5, tr("Move Z-"), manual_axes[2].negative_text, manual_axes[2].negative_bind);
     add_manual_shortcut_row(shortcuts_grid, 6, tr("Move Z+"), manual_axes[2].positive_text, manual_axes[2].positive_bind);
+    add_manual_shortcut_row(shortcuts_grid, 7, tr("Move Yaw-"), manual_axes[3].negative_text, manual_axes[3].negative_bind);
+    add_manual_shortcut_row(shortcuts_grid, 8, tr("Move Yaw+"), manual_axes[3].positive_text, manual_axes[3].positive_bind);
 
     shortcuts_layout->insertWidget(1, shortcuts_group);
 }
 
 void options_dialog::refresh_manual_translation_ui()
 {
-    QComboBox* sources[] { ui.src_x, ui.src_y, ui.src_z };
-    QCheckBox* preinvert[] { ui.invert_x_pre, ui.invert_y_pre, ui.invert_z_pre };
+    QComboBox* sources[] { ui.src_x, ui.src_y, ui.src_z, ui.src_yaw };
+    QCheckBox* preinvert[] { ui.invert_x_pre, ui.invert_y_pre, ui.invert_z_pre, ui.invert_yaw_pre };
     bool any_manual_analog = false;
 
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < int(manual_axes.size()); i++)
     {
-        const auto mode = (*main.manual_translation_axes[i]).mode();
-        const bool tracked = mode == translation_tracked;
-        const bool manual_keys = mode == translation_manual_keys;
-        const bool manual_analog = mode == translation_manual_analog;
+        const auto mode = translation_control_mode((*main.manual_translation_axes[i]).mode());
+        const bool tracked = uses_tracking(mode);
+        const bool manual_keys = uses_manual_keys(mode);
+        const bool manual_analog = uses_manual_analog(mode);
         any_manual_analog = any_manual_analog || manual_analog;
 
         sources[i]->setEnabled(tracked);
@@ -327,6 +419,23 @@ options_dialog::options_dialog(std::unique_ptr<ITrackerDialog>& tracker_dialog_,
     tie_setting(main.precision_yaw_scale, ui.precision_yaw_scale);
     tie_setting(main.precision_pitch_scale, ui.precision_pitch_scale);
     tie_setting(main.precision_roll_scale, ui.precision_roll_scale);
+    tie_setting(main.tailview.min_yaw_deg, ui.tailview_min_yaw_deg);
+    tie_setting(main.tailview.center_yaw_deg, ui.tailview_center_yaw_deg);
+    tie_setting(main.tailview.max_yaw_deg, ui.tailview_max_yaw_deg);
+    tie_setting(main.tailview.center_deadzone_deg, ui.tailview_center_deadzone_deg);
+    tie_setting(main.tailview.precision_yaw_scale, ui.tailview_precision_yaw_scale);
+    tie_setting(main.tailview.precision_pitch_scale, ui.tailview_precision_pitch_scale);
+    tie_setting(main.tailview.precision_roll_scale, ui.tailview_precision_roll_scale);
+    tie_setting(main.tailview.lean_x_cm, ui.tailview_lean_x_cm);
+    tie_setting(main.tailview.lean_y_cm, ui.tailview_lean_y_cm);
+    tie_setting(main.tailview.lean_z_cm, ui.tailview_lean_z_cm);
+    tie_setting(main.tailview.lean_time_ms, ui.tailview_lean_time_ms);
+    tie_setting(main.tailview.lean_invert_x, ui.tailview_lean_invert_x);
+    tie_setting(main.upview.center_pitch_deg, ui.upview_center_pitch_deg);
+    tie_setting(main.upview.center_deadzone_deg, ui.upview_center_deadzone_deg);
+    tie_setting(main.upview.precision_yaw_scale, ui.upview_precision_yaw_scale);
+    tie_setting(main.upview.precision_pitch_scale, ui.upview_precision_pitch_scale);
+    tie_setting(main.upview.precision_roll_scale, ui.upview_precision_roll_scale);
 
     tie_setting(main.a_x.zero, ui.pos_tx);
     tie_setting(main.a_y.zero, ui.pos_ty);
@@ -403,6 +512,18 @@ options_dialog::options_dialog(std::unique_ptr<ITrackerDialog>& tracker_dialog_,
         { main.key_precision1, ui.precision_text, ui.bind_precision },
         { main.key_precision2, ui.precision_text_2, ui.bind_precision_2 },
 
+        { main.key_precision_toggle1, ui.precision_toggle_text, ui.bind_precision_toggle },
+        { main.key_precision_toggle2, ui.precision_toggle_text_2, ui.bind_precision_toggle_2 },
+
+        { main.key_tailview_left1, ui.tailview_left_text, ui.bind_tailview_left },
+        { main.key_tailview_left2, ui.tailview_left_text_2, ui.bind_tailview_left_2 },
+
+        { main.key_tailview_right1, ui.tailview_right_text, ui.bind_tailview_right },
+        { main.key_tailview_right2, ui.tailview_right_text_2, ui.bind_tailview_right_2 },
+
+        { main.key_upview1, ui.upview_text, ui.bind_upview },
+        { main.key_upview2, ui.upview_text_2, ui.bind_upview_2 },
+
         { main.key_start_tracking1, ui.start_tracking_text, ui.bind_start },
         { main.key_start_tracking2, ui.start_tracking_text_2, ui.bind_start_2 },
 
@@ -428,6 +549,8 @@ options_dialog::options_dialog(std::unique_ptr<ITrackerDialog>& tracker_dialog_,
     connect_binding_controls(main.manual_y.positive_key, manual_axes[1].positive_text, manual_axes[1].positive_bind);
     connect_binding_controls(main.manual_z.negative_key, manual_axes[2].negative_text, manual_axes[2].negative_bind);
     connect_binding_controls(main.manual_z.positive_key, manual_axes[2].positive_text, manual_axes[2].positive_bind);
+    connect_binding_controls(main.manual_yaw.negative_key, manual_axes[3].negative_text, manual_axes[3].negative_bind);
+    connect_binding_controls(main.manual_yaw.positive_key, manual_axes[3].positive_text, manual_axes[3].positive_bind);
     refresh_manual_translation_ui();
 
     auto add_module_tab = [this] (auto& place, auto&& dlg, const QString& label) {

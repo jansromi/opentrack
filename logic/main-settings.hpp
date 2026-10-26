@@ -37,6 +37,8 @@ enum translation_control_mode : int
     translation_manual_keys = 1,
     translation_manual_analog = 2,
     translation_disabled = 3,
+    translation_tracked_manual_keys = 4,
+    translation_tracked_manual_analog = 5,
 };
 
 namespace main_settings_impl {
@@ -55,11 +57,14 @@ struct OTR_LOGIC_EXPORT manual_translation_axis_settings final
     value<double> analog_deadzone;
     key_opts negative_key, positive_key;
 
-    manual_translation_axis_settings(bundle b, const QString& prefix) :
+    manual_translation_axis_settings(bundle b, const QString& prefix,
+                                     double min_default = -75.0,
+                                     double max_default = 75.0,
+                                     double speed_default = 30.0) :
         mode(b, prefix + "-mode", translation_tracked),
-        min(b, prefix + "-min", -75.0),
-        max(b, prefix + "-max", 75.0),
-        speed(b, prefix + "-speed", 30.0),
+        min(b, prefix + "-min", min_default),
+        max(b, prefix + "-max", max_default),
+        speed(b, prefix + "-speed", speed_default),
         detents_enabled(b, prefix + "-detents-enabled", false),
         detent_positions(b, prefix + "-detent-positions", ""),
         detent_delay(b, prefix + "-detent-delay", 0.8),
@@ -68,6 +73,73 @@ struct OTR_LOGIC_EXPORT manual_translation_axis_settings final
         analog_deadzone(b, prefix + "-analog-deadzone", 0.05),
         negative_key(b, prefix + "-negative"),
         positive_key(b, prefix + "-positive")
+    {}
+};
+
+struct OTR_LOGIC_EXPORT manual_yaw_lean_settings final
+{
+    value<double> start_deg;
+    value<double> full_deg;
+    value<double> x_cm;
+    value<double> y_cm;
+    value<double> z_cm;
+    value<bool> invert_x;
+
+    manual_yaw_lean_settings(bundle b, const QString& prefix) :
+        start_deg(b, prefix + "-lean-start-deg", 90.0),
+        full_deg(b, prefix + "-lean-full-deg", 160.0),
+        x_cm(b, prefix + "-lean-x-cm", 0.0),
+        y_cm(b, prefix + "-lean-y-cm", 0.0),
+        z_cm(b, prefix + "-lean-z-cm", 0.0),
+        invert_x(b, prefix + "-lean-invert-x", false)
+    {}
+};
+
+struct OTR_LOGIC_EXPORT tailview_settings final
+{
+    value<double> min_yaw_deg;
+    value<double> center_yaw_deg;
+    value<double> max_yaw_deg;
+    value<double> center_deadzone_deg;
+    value<double> precision_yaw_scale;
+    value<double> precision_pitch_scale;
+    value<double> precision_roll_scale;
+    value<double> lean_x_cm;
+    value<double> lean_y_cm;
+    value<double> lean_z_cm;
+    value<int> lean_time_ms;
+    value<bool> lean_invert_x;
+
+    tailview_settings(bundle b, const QString& prefix) :
+        min_yaw_deg(b, prefix + "-min-yaw-deg", 140.0),
+        center_yaw_deg(b, prefix + "-center-yaw-deg", 160.0),
+        max_yaw_deg(b, prefix + "-max-yaw-deg", 175.0),
+        center_deadzone_deg(b, prefix + "-center-deadzone-deg", 2.0),
+        precision_yaw_scale(b, prefix + "-precision-yaw-scale", 0.35),
+        precision_pitch_scale(b, prefix + "-precision-pitch-scale", 0.50),
+        precision_roll_scale(b, prefix + "-precision-roll-scale", 0.50),
+        lean_x_cm(b, prefix + "-lean-x-cm", 0.0),
+        lean_y_cm(b, prefix + "-lean-y-cm", 0.0),
+        lean_z_cm(b, prefix + "-lean-z-cm", 0.0),
+        lean_time_ms(b, prefix + "-lean-time-ms", 150),
+        lean_invert_x(b, prefix + "-lean-invert-x", false)
+    {}
+};
+
+struct OTR_LOGIC_EXPORT upview_settings final
+{
+    value<double> center_pitch_deg;
+    value<double> center_deadzone_deg;
+    value<double> precision_yaw_scale;
+    value<double> precision_pitch_scale;
+    value<double> precision_roll_scale;
+
+    upview_settings(bundle b, const QString& prefix) :
+        center_pitch_deg(b, prefix + "-center-pitch-deg", 90.0),
+        center_deadzone_deg(b, prefix + "-center-deadzone-deg", 2.0),
+        precision_yaw_scale(b, prefix + "-precision-yaw-scale", 0.50),
+        precision_pitch_scale(b, prefix + "-precision-pitch-scale", 0.35),
+        precision_roll_scale(b, prefix + "-precision-roll-scale", 0.50)
     {}
 };
 
@@ -120,10 +192,14 @@ struct OTR_LOGIC_EXPORT main_settings final
     value<double> precision_pitch_scale { b, "precision-pitch-scale", 0.7 };
     value<double> precision_roll_scale { b, "precision-roll-scale", 1.0 };
     value<QString> manual_analog_guid { b, "manual-translation-analog-guid", "" };
+    tailview_settings tailview { b, "tailview" };
+    upview_settings upview { b, "upview" };
     manual_translation_axis_settings manual_x { b, "manual-translation-x" };
     manual_translation_axis_settings manual_y { b, "manual-translation-y" };
     manual_translation_axis_settings manual_z { b, "manual-translation-z" };
-    manual_translation_axis_settings* manual_translation_axes[3] { &manual_x, &manual_y, &manual_z };
+    manual_translation_axis_settings manual_yaw { b, "manual-translation-yaw", -180.0, 180.0, 60.0 };
+    manual_yaw_lean_settings manual_yaw_lean { b, "manual-translation-yaw" };
+    manual_translation_axis_settings* manual_translation_axes[4] { &manual_x, &manual_y, &manual_z, &manual_yaw };
 
     key_opts key_start_tracking1 { b, "start-tracking" };
     key_opts key_start_tracking2 { b, "start-tracking-alt" };
@@ -154,6 +230,15 @@ struct OTR_LOGIC_EXPORT main_settings final
 
     key_opts key_precision1 { b, "precision" };
     key_opts key_precision2 { b, "precision-alt" };
+    key_opts key_precision_toggle1 { b, "precision-toggle" };
+    key_opts key_precision_toggle2 { b, "precision-toggle-alt" };
+
+    key_opts key_tailview_left1 { b, "tailview-left" };
+    key_opts key_tailview_left2 { b, "tailview-left-alt" };
+    key_opts key_tailview_right1 { b, "tailview-right" };
+    key_opts key_tailview_right2 { b, "tailview-right-alt" };
+    key_opts key_upview1 { b, "upview" };
+    key_opts key_upview2 { b, "upview-alt" };
 
     value<bool> tracklogging_enabled { b, "tracklogging-enabled", false };
     value<QString> tracklogging_filename { b, "tracklogging-filename", {} };
@@ -165,4 +250,6 @@ struct OTR_LOGIC_EXPORT main_settings final
 
 using module_settings = main_settings_impl::module_settings;
 using manual_translation_axis_settings = main_settings_impl::manual_translation_axis_settings;
+using tailview_settings = main_settings_impl::tailview_settings;
+using upview_settings = main_settings_impl::upview_settings;
 using main_settings = main_settings_impl::main_settings;

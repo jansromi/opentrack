@@ -309,6 +309,26 @@ Press &quot;clear calibration&quot; to remove any calibration data pertaining to
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Tracked</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Tracked + manual keys</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Manual keys</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Tracked + manual analog</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Manual analog</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Destination</source>
         <translation type="unfinished"></translation>
     </message>
@@ -422,6 +442,26 @@ Press &quot;clear calibration&quot; to remove any calibration data pertaining to
     </message>
     <message>
         <source>Extra rotation adjustment for reducing axis bleed on asymmetrically mounted cameras.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Move Yaw-</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Move Yaw+</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>°/s</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>-135, 0, 135</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Comma, semicolon, or space separated detent points in degrees</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
