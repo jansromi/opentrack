@@ -30,6 +30,10 @@ cmake -GNinja -S "$root" -B "$build" \
     -DCMAKE_PREFIX_PATH="$(brew --prefix qt)" \
     -DOpenCV_DIR="$(brew --prefix opencv@4)/lib/cmake/opencv4"
 
+# macdeployqt never overwrites libraries already in the bundle, so a
+# leftover install/ would run stale opentrack libraries; start clean.
+rm -rf "$install"
+
 cmake --build "$build" --target install
 
 # the build regenerates translation files, revert them like build-msvc.cmd does
