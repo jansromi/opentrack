@@ -44,6 +44,27 @@ git -C "$root" clean -fq -- ':(glob)**/lang/*.ts'
 # X-Plane plugin; the .app is complete by then, so drop the leftovers.
 rm -f "$build"/rw.*.dmg
 
+# macdeployqt copies dependencies into Contents/Frameworks but leaves rpaths
+# to Homebrew and the install dir, so Qt, OpenCV and libomp get loaded twice
+# and the app aborts. Make the libraries and plugins resolve inside the bundle.
+fix_rpaths() {
+    lib="$1"
+    bundled="$2"
+    otool -l "$lib" | awk '/cmd LC_RPATH/ { getline; getline; print $2 }' | while read -r rpath; do
+        case "$rpath" in
+            @*) ;;
+            *) install_name_tool -delete_rpath "$rpath" "$lib" 2>/dev/null ;;
+        esac
+    done
+    otool -l "$lib" | grep -q "path $bundled " || install_name_tool -add_rpath "$bundled" "$lib" 2>/dev/null
+}
+for lib in "$app/Contents/Frameworks"/*.dylib; do
+    fix_rpaths "$lib" @loader_path
+done
+for lib in "$app/Contents/MacOS/Plugins"/*.dylib; do
+    fix_rpaths "$lib" @loader_path/../../Frameworks
+done
+
 # macdeployqt invalidates the signature and macOS kills the app on launch.
 codesign --force --deep --sign - "$app"
 codesign --verify --deep --strict "$app"
