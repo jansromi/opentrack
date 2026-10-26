@@ -102,6 +102,7 @@ class OTR_LOGIC_EXPORT manual_translation final
 
     std::array<std::atomic_bool, axis_count> negative_held, positive_held;
     std::array<double, axis_count> positions {};
+    std::array<double, axis_count> manual_values {};
     std::array<detent_state, axis_count> detents {};
     std::array<translation_control_mode, axis_count> last_modes {};
     std::array<bool, axis_count> mode_initialized {};
@@ -129,6 +130,7 @@ public:
     void set_input(Axis axis, bool positive, bool held);
     void reset();
     Pose apply(const main_settings& s, const Pose& value, bool frozen);
+    double manual_value(Axis axis) const;
 };
 
 class OTR_LOGIC_EXPORT pipeline : private QThread
@@ -221,7 +223,9 @@ class OTR_LOGIC_EXPORT pipeline : private QThread
     Pose apply_reltrans(Pose value, vec6_bool disabled, bool centerp);
     Pose apply_precision(Pose value);
     Pose apply_tailview(Pose value, bool suppressed);
-    Pose apply_tailview_lean(Pose value, tailview_direction direction);
+    void update_tailview_lean(tailview_direction direction);
+    Pose manual_yaw_lean() const;
+    Pose apply_lean(Pose value, bool zeroed);
     Pose apply_upview(Pose value, bool suppressed);
     Pose apply_zero_pos(Pose value) const;
 

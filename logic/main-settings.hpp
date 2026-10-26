@@ -76,6 +76,25 @@ struct OTR_LOGIC_EXPORT manual_translation_axis_settings final
     {}
 };
 
+struct OTR_LOGIC_EXPORT manual_yaw_lean_settings final
+{
+    value<double> start_deg;
+    value<double> full_deg;
+    value<double> x_cm;
+    value<double> y_cm;
+    value<double> z_cm;
+    value<bool> invert_x;
+
+    manual_yaw_lean_settings(bundle b, const QString& prefix) :
+        start_deg(b, prefix + "-lean-start-deg", 90.0),
+        full_deg(b, prefix + "-lean-full-deg", 160.0),
+        x_cm(b, prefix + "-lean-x-cm", 0.0),
+        y_cm(b, prefix + "-lean-y-cm", 0.0),
+        z_cm(b, prefix + "-lean-z-cm", 0.0),
+        invert_x(b, prefix + "-lean-invert-x", false)
+    {}
+};
+
 struct OTR_LOGIC_EXPORT tailview_settings final
 {
     value<double> min_yaw_deg;
@@ -179,6 +198,7 @@ struct OTR_LOGIC_EXPORT main_settings final
     manual_translation_axis_settings manual_y { b, "manual-translation-y" };
     manual_translation_axis_settings manual_z { b, "manual-translation-z" };
     manual_translation_axis_settings manual_yaw { b, "manual-translation-yaw", -180.0, 180.0, 60.0 };
+    manual_yaw_lean_settings manual_yaw_lean { b, "manual-translation-yaw" };
     manual_translation_axis_settings* manual_translation_axes[4] { &manual_x, &manual_y, &manual_z, &manual_yaw };
 
     key_opts key_start_tracking1 { b, "start-tracking" };

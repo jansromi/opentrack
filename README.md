@@ -11,6 +11,7 @@
 - Updated the manual translation options UI and runtime pipeline so recentering and mode changes clear temporary manual-axis state cleanly.
 - Added hold-to-snap rear `Tail View` shortcuts with configurable anchor, deadzone, and follow scales, plus a matching configurable `Up View`.
 - Added a configurable `Tail View` lean (sideways toward the look direction, up, forward) that eases in and out over a set time, so the eye point can move past the seat back; zero by default.
+- Added a matching lean to the manual/analog yaw axis that fades in (smoothstep) between configurable start and full yaw angles, so a joystick axis works as an analog tail view; the Tail View lean takes over while Tail View is held.
 
 ## Intro
 

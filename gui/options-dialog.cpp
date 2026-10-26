@@ -267,6 +267,54 @@ void options_dialog::setup_manual_translation_ui()
     }
 
     output_group_layout->addLayout(output_grid);
+
+    {
+        auto* lean_grid = new QGridLayout;
+        auto* lean_start = new QDoubleSpinBox(this);
+        auto* lean_full = new QDoubleSpinBox(this);
+        auto* lean_x = new QDoubleSpinBox(this);
+        auto* lean_y = new QDoubleSpinBox(this);
+        auto* lean_z = new QDoubleSpinBox(this);
+        auto* lean_invert_x = new QCheckBox(tr("Invert sideways lean"), this);
+
+        for (QDoubleSpinBox* spin : { lean_start, lean_full })
+        {
+            spin->setDecimals(1);
+            spin->setSingleStep(1.0);
+            spin->setRange(0.0, 180.0);
+            spin->setSuffix(tr("°"));
+        }
+
+        for (QDoubleSpinBox* spin : { lean_x, lean_y, lean_z })
+        {
+            spin->setDecimals(1);
+            spin->setSingleStep(1.0);
+            spin->setRange(-50.0, 50.0);
+            spin->setSuffix(tr(" cm"));
+        }
+
+        lean_grid->addWidget(new QLabel(tr("Yaw lean"), this), 1, 0);
+        lean_grid->addWidget(new QLabel(tr("Lean start"), this), 0, 1);
+        lean_grid->addWidget(new QLabel(tr("Lean full"), this), 0, 2);
+        lean_grid->addWidget(new QLabel(tr("Lean sideways"), this), 0, 3);
+        lean_grid->addWidget(new QLabel(tr("Lean up"), this), 0, 4);
+        lean_grid->addWidget(new QLabel(tr("Lean forward"), this), 0, 5);
+        lean_grid->addWidget(lean_start, 1, 1);
+        lean_grid->addWidget(lean_full, 1, 2);
+        lean_grid->addWidget(lean_x, 1, 3);
+        lean_grid->addWidget(lean_y, 1, 4);
+        lean_grid->addWidget(lean_z, 1, 5);
+        lean_grid->addWidget(lean_invert_x, 1, 6);
+
+        tie_setting(main.manual_yaw_lean.start_deg, lean_start);
+        tie_setting(main.manual_yaw_lean.full_deg, lean_full);
+        tie_setting(main.manual_yaw_lean.x_cm, lean_x);
+        tie_setting(main.manual_yaw_lean.y_cm, lean_y);
+        tie_setting(main.manual_yaw_lean.z_cm, lean_z);
+        tie_setting(main.manual_yaw_lean.invert_x, lean_invert_x);
+
+        output_group_layout->addLayout(lean_grid);
+    }
     output_layout->insertWidget(1, output_group);
 
     auto* shortcuts_group = new QGroupBox(tr("Manual translation shortcuts"), this);
