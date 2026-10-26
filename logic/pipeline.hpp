@@ -197,6 +197,8 @@ class OTR_LOGIC_EXPORT pipeline : private QThread
     std::atomic_bool upview_held { false };
     tailview_inputs tailview_input;
     tailview_runtime tailview;
+    Pose tailview_lean;
+    Timer tailview_lean_timer;
     anchored_view_runtime upview;
 
     time_units::ms backlog_time {};
@@ -210,6 +212,7 @@ class OTR_LOGIC_EXPORT pipeline : private QThread
     void maybe_set_center_pose(const centering_state mode, const Pose& value, bool own_center_logic);
     void clear_precision();
     void clear_tailview();
+    void clear_tailview_lean();
     void clear_upview();
     Pose apply_center(const centering_state mode, Pose value) const;
     Pose apply_camera_offset(Pose value) const;
@@ -218,6 +221,7 @@ class OTR_LOGIC_EXPORT pipeline : private QThread
     Pose apply_reltrans(Pose value, vec6_bool disabled, bool centerp);
     Pose apply_precision(Pose value);
     Pose apply_tailview(Pose value, bool suppressed);
+    Pose apply_tailview_lean(Pose value, tailview_direction direction);
     Pose apply_upview(Pose value, bool suppressed);
     Pose apply_zero_pos(Pose value) const;
 

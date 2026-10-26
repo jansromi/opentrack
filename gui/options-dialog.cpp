@@ -378,6 +378,11 @@ options_dialog::options_dialog(std::unique_ptr<ITrackerDialog>& tracker_dialog_,
     tie_setting(main.tailview.precision_yaw_scale, ui.tailview_precision_yaw_scale);
     tie_setting(main.tailview.precision_pitch_scale, ui.tailview_precision_pitch_scale);
     tie_setting(main.tailview.precision_roll_scale, ui.tailview_precision_roll_scale);
+    tie_setting(main.tailview.lean_x_cm, ui.tailview_lean_x_cm);
+    tie_setting(main.tailview.lean_y_cm, ui.tailview_lean_y_cm);
+    tie_setting(main.tailview.lean_z_cm, ui.tailview_lean_z_cm);
+    tie_setting(main.tailview.lean_time_ms, ui.tailview_lean_time_ms);
+    tie_setting(main.tailview.lean_invert_x, ui.tailview_lean_invert_x);
     tie_setting(main.upview.center_pitch_deg, ui.upview_center_pitch_deg);
     tie_setting(main.upview.center_deadzone_deg, ui.upview_center_deadzone_deg);
     tie_setting(main.upview.precision_yaw_scale, ui.upview_precision_yaw_scale);

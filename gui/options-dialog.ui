@@ -1586,6 +1586,126 @@
             </property>
            </widget>
           </item>
+          <item row="7" column="0">
+           <widget class="QLabel" name="label_tailview_lean_x_cm">
+            <property name="text">
+             <string>Lean sideways</string>
+            </property>
+           </widget>
+          </item>
+          <item row="7" column="1">
+           <widget class="QDoubleSpinBox" name="tailview_lean_x_cm">
+            <property name="decimals">
+             <number>1</number>
+            </property>
+            <property name="minimum">
+             <double>-50.000000000000000</double>
+            </property>
+            <property name="maximum">
+             <double>50.000000000000000</double>
+            </property>
+            <property name="singleStep">
+             <double>1.000000000000000</double>
+            </property>
+            <property name="value">
+             <double>0.000000000000000</double>
+            </property>
+            <property name="suffix">
+             <string> cm</string>
+            </property>
+           </widget>
+          </item>
+          <item row="8" column="0">
+           <widget class="QLabel" name="label_tailview_lean_y_cm">
+            <property name="text">
+             <string>Lean up</string>
+            </property>
+           </widget>
+          </item>
+          <item row="8" column="1">
+           <widget class="QDoubleSpinBox" name="tailview_lean_y_cm">
+            <property name="decimals">
+             <number>1</number>
+            </property>
+            <property name="minimum">
+             <double>-50.000000000000000</double>
+            </property>
+            <property name="maximum">
+             <double>50.000000000000000</double>
+            </property>
+            <property name="singleStep">
+             <double>1.000000000000000</double>
+            </property>
+            <property name="value">
+             <double>0.000000000000000</double>
+            </property>
+            <property name="suffix">
+             <string> cm</string>
+            </property>
+           </widget>
+          </item>
+          <item row="9" column="0">
+           <widget class="QLabel" name="label_tailview_lean_z_cm">
+            <property name="text">
+             <string>Lean forward</string>
+            </property>
+           </widget>
+          </item>
+          <item row="9" column="1">
+           <widget class="QDoubleSpinBox" name="tailview_lean_z_cm">
+            <property name="decimals">
+             <number>1</number>
+            </property>
+            <property name="minimum">
+             <double>-50.000000000000000</double>
+            </property>
+            <property name="maximum">
+             <double>50.000000000000000</double>
+            </property>
+            <property name="singleStep">
+             <double>1.000000000000000</double>
+            </property>
+            <property name="value">
+             <double>0.000000000000000</double>
+            </property>
+            <property name="suffix">
+             <string> cm</string>
+            </property>
+           </widget>
+          </item>
+          <item row="10" column="0">
+           <widget class="QLabel" name="label_tailview_lean_time">
+            <property name="text">
+             <string>Lean time</string>
+            </property>
+           </widget>
+          </item>
+          <item row="10" column="1">
+           <widget class="QSpinBox" name="tailview_lean_time_ms">
+            <property name="maximum">
+             <number>1000</number>
+            </property>
+            <property name="singleStep">
+             <number>10</number>
+            </property>
+            <property name="value">
+             <number>150</number>
+            </property>
+            <property name="suffix">
+             <string> ms</string>
+            </property>
+           </widget>
+          </item>
+          <item row="11" column="0" colspan="2">
+           <widget class="QCheckBox" name="tailview_lean_invert_x">
+            <property name="toolTip">
+             <string>Use if Tail View lean moves the eye point away from the look direction in the game.</string>
+            </property>
+            <property name="text">
+             <string>Invert sideways lean</string>
+            </property>
+           </widget>
+          </item>
         </layout>
        </widget>
       </item>
@@ -3440,6 +3560,11 @@
   <tabstop>tailview_precision_yaw_scale</tabstop>
   <tabstop>tailview_precision_pitch_scale</tabstop>
   <tabstop>tailview_precision_roll_scale</tabstop>
+  <tabstop>tailview_lean_x_cm</tabstop>
+  <tabstop>tailview_lean_y_cm</tabstop>
+  <tabstop>tailview_lean_z_cm</tabstop>
+  <tabstop>tailview_lean_time_ms</tabstop>
+  <tabstop>tailview_lean_invert_x</tabstop>
   <tabstop>upview_center_pitch_deg</tabstop>
   <tabstop>upview_center_deadzone_deg</tabstop>
   <tabstop>upview_precision_yaw_scale</tabstop>

@@ -651,6 +651,11 @@ void pipeline::clear_tailview()
     tailview.output_anchor = {};
 }
 
+void pipeline::clear_tailview_lean()
+{
+    tailview_lean = {};
+}
+
 void pipeline::clear_upview()
 {
     upview.was_active = false;
@@ -665,6 +670,7 @@ void pipeline::maybe_set_center_pose(const centering_state mode, const Pose& val
         set_center(false);
         clear_precision();
         clear_tailview();
+        clear_tailview_lean();
         clear_upview();
         manual.reset();
 
@@ -875,7 +881,7 @@ Pose pipeline::apply_tailview(Pose value, bool suppressed)
     if (direction == tailview_direction::none || suppressed)
     {
         clear_tailview();
-        return value;
+        return apply_tailview_lean(value, tailview_direction::none);
     }
 
     const auto& cfg = s.tailview;
@@ -909,7 +915,42 @@ Pose pipeline::apply_tailview(Pose value, bool suppressed)
     out(Pitch) = tailview.output_anchor(Pitch) + pitch_delta * pitch_scale;
     out(Roll) = tailview.output_anchor(Roll) + roll_delta * roll_scale;
 
-    return out;
+    return apply_tailview_lean(out, direction);
+}
+
+Pose pipeline::apply_tailview_lean(Pose value, tailview_direction direction)
+{
+    const double dt = tailview_lean_timer.elapsed_seconds();
+    tailview_lean_timer.start();
+
+    const auto& cfg = s.tailview;
+    const double lean_cm[3] = { cfg.lean_x_cm, cfg.lean_y_cm, cfg.lean_z_cm };
+    const double time = std::max(0, int(cfg.lean_time_ms)) * 1e-3;
+
+    Pose target;
+    if (direction != tailview_direction::none)
+    {
+        // +yaw looks right but +TX moves left (see reltrans::rotate), and +TZ moves back
+        const double side = (direction == tailview_direction::left ? 1.0 : -1.0) * (cfg.lean_invert_x ? -1.0 : 1.0);
+        target(TX) = side * lean_cm[TX];
+        target(TY) = lean_cm[TY];
+        target(TZ) = -lean_cm[TZ];
+    }
+
+    for (int i = TX; i <= TZ; i++)
+    {
+        if (time <= 0)
+            tailview_lean(i) = target(i);
+        else
+        {
+            // linear, so a full lean eases in or out over the lean time
+            const double step = std::max(std::fabs(lean_cm[i]), std::fabs(tailview_lean(i))) * dt / time;
+            tailview_lean(i) += std::clamp(target(i) - tailview_lean(i), -step, step);
+        }
+        value(i) += tailview_lean(i);
+    }
+
+    return value;
 }
 
 Pose pipeline::apply_upview(Pose value, bool suppressed)

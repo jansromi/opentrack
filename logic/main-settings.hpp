@@ -85,6 +85,11 @@ struct OTR_LOGIC_EXPORT tailview_settings final
     value<double> precision_yaw_scale;
     value<double> precision_pitch_scale;
     value<double> precision_roll_scale;
+    value<double> lean_x_cm;
+    value<double> lean_y_cm;
+    value<double> lean_z_cm;
+    value<int> lean_time_ms;
+    value<bool> lean_invert_x;
 
     tailview_settings(bundle b, const QString& prefix) :
         min_yaw_deg(b, prefix + "-min-yaw-deg", 140.0),
@@ -93,7 +98,12 @@ struct OTR_LOGIC_EXPORT tailview_settings final
         center_deadzone_deg(b, prefix + "-center-deadzone-deg", 2.0),
         precision_yaw_scale(b, prefix + "-precision-yaw-scale", 0.35),
         precision_pitch_scale(b, prefix + "-precision-pitch-scale", 0.50),
-        precision_roll_scale(b, prefix + "-precision-roll-scale", 0.50)
+        precision_roll_scale(b, prefix + "-precision-roll-scale", 0.50),
+        lean_x_cm(b, prefix + "-lean-x-cm", 0.0),
+        lean_y_cm(b, prefix + "-lean-y-cm", 0.0),
+        lean_z_cm(b, prefix + "-lean-z-cm", 0.0),
+        lean_time_ms(b, prefix + "-lean-time-ms", 150),
+        lean_invert_x(b, prefix + "-lean-invert-x", false)
     {}
 };
 
