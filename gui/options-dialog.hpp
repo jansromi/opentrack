@@ -64,6 +64,7 @@ private:
         QCheckBox* detents_enabled = nullptr;
         QLineEdit* detent_positions = nullptr;
         QDoubleSpinBox* detent_delay = nullptr;
+        QCheckBox* detent_press_to_pass = nullptr;
         QComboBox* analog_axis = nullptr;
         QCheckBox* analog_invert = nullptr;
         QDoubleSpinBox* analog_deadzone = nullptr;

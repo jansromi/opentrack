@@ -446,8 +446,9 @@ Pose manual_translation::apply(const main_settings& s, const Pose& value, bool f
                     positions[i] = std::clamp(detent_state.position, min, max);
                     detent_state.held_time += dt;
 
+                    // stay on the detent for the rest of the hold, releasing resets the state
                     const double delay = std::max(0.0, double(axis.detent_delay));
-                    if (detent_state.held_time < delay)
+                    if (bool(axis.detent_press_to_pass) || detent_state.held_time < delay)
                         move_dt = 0;
                     else
                     {
