@@ -200,6 +200,8 @@ struct OTR_LOGIC_EXPORT main_settings final
 
     key_opts key_precision1 { b, "precision" };
     key_opts key_precision2 { b, "precision-alt" };
+    key_opts key_precision_toggle1 { b, "precision-toggle" };
+    key_opts key_precision_toggle2 { b, "precision-toggle-alt" };
 
     key_opts key_tailview_left1 { b, "tailview-left" };
     key_opts key_tailview_left2 { b, "tailview-left-alt" };

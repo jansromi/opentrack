@@ -4,6 +4,7 @@
 
 - Added a "Precision while held" mode that temporarily scales mapped yaw, pitch, and roll output while a bound key is held, with primary and alternate key bindings plus configurable precision scales in the options dialog.
 - Refactored the pipeline precision handling so the precision state is cleared on recenter and transitions cleanly when the precision key is released.
+- Added a "Precision toggle" shortcut (primary and alternate, keyboard or joystick) that turns precision mode on with one press and off with the next; it combines with "Precision while held" and re-anchors on recenter and after Tail/Up View.
 - Added manual translation axes for X, Y, and Z, with per-axis tracked/manual/combined/disabled modes, configurable limits, speed, and shortcut bindings.
 - Added Windows joystick analog control for manual translation, including per-axis joystick selection, invert, deadzone settings, and tracked-plus-analog combination modes.
 - Added manual axis detents for manual key control, with per-axis enable toggles, configurable detent positions, and hold-to-pass delay timing.

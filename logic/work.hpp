@@ -65,6 +65,8 @@ public:
 
         key_tuple(s.key_precision1, [this](bool x) { pipeline_.set_precision(x); }, false),
         key_tuple(s.key_precision2, [this](bool x) { pipeline_.set_precision(x); }, false),
+        key_tuple(s.key_precision_toggle1, [this](bool) { pipeline_.toggle_precision(); }, true),
+        key_tuple(s.key_precision_toggle2, [this](bool) { pipeline_.toggle_precision(); }, true),
 
         key_tuple(s.key_tailview_left1, [this](bool x) { pipeline_.set_tailview_left(x); }, false),
         key_tuple(s.key_tailview_left2, [this](bool x) { pipeline_.set_tailview_left(x); }, false),

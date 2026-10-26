@@ -877,7 +877,7 @@
            </widget>
           </item>
           <item row="10" column="0">
-           <widget class="QLabel" name="label_tailview_left">
+           <widget class="QLabel" name="label_precision_toggle">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
               <horstretch>0</horstretch>
@@ -888,15 +888,15 @@
              <cursorShape>WhatsThisCursor</cursorShape>
             </property>
             <property name="toolTip">
-             <string>Snap to the configured rear-left tail view while held.</string>
+             <string>Press once to turn precision mode on, again to turn it off.</string>
             </property>
             <property name="text">
-             <string>Tail view left</string>
+             <string>Precision toggle</string>
             </property>
            </widget>
           </item>
           <item row="10" column="1">
-           <widget class="QLabel" name="tailview_left_text">
+           <widget class="QLabel" name="precision_toggle_text">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
               <horstretch>255</horstretch>
@@ -915,7 +915,7 @@
            </widget>
           </item>
           <item row="10" column="2">
-           <widget class="QPushButton" name="bind_tailview_left">
+           <widget class="QPushButton" name="bind_precision_toggle">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
               <horstretch>0</horstretch>
@@ -928,7 +928,7 @@
            </widget>
           </item>
           <item row="10" column="3">
-           <widget class="QLabel" name="tailview_left_text_2">
+           <widget class="QLabel" name="precision_toggle_text_2">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
               <horstretch>255</horstretch>
@@ -947,7 +947,7 @@
            </widget>
           </item>
           <item row="10" column="4">
-           <widget class="QPushButton" name="bind_tailview_left_2">
+           <widget class="QPushButton" name="bind_precision_toggle_2">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
               <horstretch>0</horstretch>
@@ -960,7 +960,7 @@
            </widget>
           </item>
           <item row="11" column="0">
-           <widget class="QLabel" name="label_tailview_right">
+           <widget class="QLabel" name="label_tailview_left">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
               <horstretch>0</horstretch>
@@ -971,15 +971,15 @@
              <cursorShape>WhatsThisCursor</cursorShape>
             </property>
             <property name="toolTip">
-             <string>Snap to the configured rear-right tail view while held.</string>
+             <string>Snap to the configured rear-left tail view while held.</string>
             </property>
             <property name="text">
-             <string>Tail view right</string>
+             <string>Tail view left</string>
             </property>
            </widget>
           </item>
           <item row="11" column="1">
-           <widget class="QLabel" name="tailview_right_text">
+           <widget class="QLabel" name="tailview_left_text">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
               <horstretch>255</horstretch>
@@ -998,7 +998,7 @@
            </widget>
           </item>
           <item row="11" column="2">
-           <widget class="QPushButton" name="bind_tailview_right">
+           <widget class="QPushButton" name="bind_tailview_left">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
               <horstretch>0</horstretch>
@@ -1011,7 +1011,7 @@
            </widget>
           </item>
           <item row="11" column="3">
-           <widget class="QLabel" name="tailview_right_text_2">
+           <widget class="QLabel" name="tailview_left_text_2">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
               <horstretch>255</horstretch>
@@ -1030,7 +1030,7 @@
            </widget>
           </item>
           <item row="11" column="4">
-           <widget class="QPushButton" name="bind_tailview_right_2">
+           <widget class="QPushButton" name="bind_tailview_left_2">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
               <horstretch>0</horstretch>
@@ -1043,7 +1043,7 @@
            </widget>
           </item>
           <item row="12" column="0">
-           <widget class="QLabel" name="label_upview">
+           <widget class="QLabel" name="label_tailview_right">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
               <horstretch>0</horstretch>
@@ -1054,15 +1054,15 @@
              <cursorShape>WhatsThisCursor</cursorShape>
             </property>
             <property name="toolTip">
-             <string>Snap to the configured upward view while held.</string>
+             <string>Snap to the configured rear-right tail view while held.</string>
             </property>
             <property name="text">
-             <string>Up view</string>
+             <string>Tail view right</string>
             </property>
            </widget>
           </item>
           <item row="12" column="1">
-           <widget class="QLabel" name="upview_text">
+           <widget class="QLabel" name="tailview_right_text">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
               <horstretch>255</horstretch>
@@ -1081,7 +1081,7 @@
            </widget>
           </item>
           <item row="12" column="2">
-           <widget class="QPushButton" name="bind_upview">
+           <widget class="QPushButton" name="bind_tailview_right">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
               <horstretch>0</horstretch>
@@ -1094,7 +1094,7 @@
            </widget>
           </item>
           <item row="12" column="3">
-           <widget class="QLabel" name="upview_text_2">
+           <widget class="QLabel" name="tailview_right_text_2">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
               <horstretch>255</horstretch>
@@ -1113,6 +1113,89 @@
            </widget>
           </item>
           <item row="12" column="4">
+           <widget class="QPushButton" name="bind_tailview_right_2">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="text">
+             <string>Bind</string>
+            </property>
+           </widget>
+          </item>
+          <item row="13" column="0">
+           <widget class="QLabel" name="label_upview">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="cursor">
+             <cursorShape>WhatsThisCursor</cursorShape>
+            </property>
+            <property name="toolTip">
+             <string>Snap to the configured upward view while held.</string>
+            </property>
+            <property name="text">
+             <string>Up view</string>
+            </property>
+           </widget>
+          </item>
+          <item row="13" column="1">
+           <widget class="QLabel" name="upview_text">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
+              <horstretch>255</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>100</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+          <item row="13" column="2">
+           <widget class="QPushButton" name="bind_upview">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="text">
+             <string>Bind</string>
+            </property>
+           </widget>
+          </item>
+          <item row="13" column="3">
+           <widget class="QLabel" name="upview_text_2">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
+              <horstretch>255</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>100</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+          <item row="13" column="4">
            <widget class="QPushButton" name="bind_upview_2">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
@@ -3326,6 +3409,7 @@
   <tabstop>bind_toggle_tracking</tabstop>
   <tabstop>bind_restart_tracking</tabstop>
   <tabstop>bind_precision</tabstop>
+  <tabstop>bind_precision_toggle</tabstop>
   <tabstop>bind_tailview_left</tabstop>
   <tabstop>bind_tailview_right</tabstop>
   <tabstop>bind_upview</tabstop>
@@ -3339,6 +3423,7 @@
   <tabstop>bind_toggle_tracking_2</tabstop>
   <tabstop>bind_restart_tracking_2</tabstop>
   <tabstop>bind_precision_2</tabstop>
+  <tabstop>bind_precision_toggle_2</tabstop>
   <tabstop>bind_tailview_left_2</tabstop>
   <tabstop>bind_tailview_right_2</tabstop>
   <tabstop>bind_upview_2</tabstop>

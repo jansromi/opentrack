@@ -72,6 +72,7 @@ enum bit_flags : unsigned {
     f_enabled_p      = 1 << 3,
     f_zero           = 1 << 4,
     f_precision      = 1 << 5,
+    f_precision_toggle = 1 << 6,
 };
 
 struct OTR_LOGIC_EXPORT bits
@@ -232,6 +233,7 @@ public:
     void toggle_zero();
     bool is_zero() const;
     void toggle_enabled();
+    void toggle_precision();
     bool is_enabled() const;
 
     void set_center(bool value);

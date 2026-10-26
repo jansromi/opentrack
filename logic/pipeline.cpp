@@ -836,7 +836,7 @@ Pose pipeline::apply_reltrans(Pose value, vec6_bool disabled, bool centerp)
 
 Pose pipeline::apply_precision(Pose value)
 {
-    const bool active = b.get(f_precision);
+    const bool active = b.get(f_precision) || b.get(f_precision_toggle);
 
     auto apply_active_precision = [this](const Pose& pose) {
         Pose out = pose;
@@ -1221,6 +1221,7 @@ void pipeline::set_manual_translation_input(Axis axis, bool positive, bool held)
 void pipeline::toggle_zero() { b.negate(f_zero); }
 bool pipeline::is_zero() const { return !!(b.flags & f_zero); }
 void pipeline::toggle_enabled() { b.negate(f_enabled_p); }
+void pipeline::toggle_precision() { b.negate(f_precision_toggle); }
 bool pipeline::is_enabled() const { return !!(b.flags & f_enabled_p); }
 
 void bits::set(bit_flags flag, bool val)
@@ -1254,6 +1255,7 @@ bits::bits()
     set(f_enabled_h, true);
     set(f_zero, false);
     set(f_precision, false);
+    set(f_precision_toggle, false);
 }
 
 } // ns pipeline_impl

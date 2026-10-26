@@ -459,6 +459,9 @@ options_dialog::options_dialog(std::unique_ptr<ITrackerDialog>& tracker_dialog_,
         { main.key_precision1, ui.precision_text, ui.bind_precision },
         { main.key_precision2, ui.precision_text_2, ui.bind_precision_2 },
 
+        { main.key_precision_toggle1, ui.precision_toggle_text, ui.bind_precision_toggle },
+        { main.key_precision_toggle2, ui.precision_toggle_text_2, ui.bind_precision_toggle_2 },
+
         { main.key_tailview_left1, ui.tailview_left_text, ui.bind_tailview_left },
         { main.key_tailview_left2, ui.tailview_left_text_2, ui.bind_tailview_left_2 },
 
