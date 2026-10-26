@@ -76,6 +76,25 @@ struct OTR_LOGIC_EXPORT manual_translation_axis_settings final
     {}
 };
 
+struct OTR_LOGIC_EXPORT manual_yaw_lean_settings final
+{
+    value<double> start_deg;
+    value<double> full_deg;
+    value<double> x_cm;
+    value<double> y_cm;
+    value<double> z_cm;
+    value<bool> invert_x;
+
+    manual_yaw_lean_settings(bundle b, const QString& prefix) :
+        start_deg(b, prefix + "-lean-start-deg", 90.0),
+        full_deg(b, prefix + "-lean-full-deg", 160.0),
+        x_cm(b, prefix + "-lean-x-cm", 0.0),
+        y_cm(b, prefix + "-lean-y-cm", 0.0),
+        z_cm(b, prefix + "-lean-z-cm", 0.0),
+        invert_x(b, prefix + "-lean-invert-x", false)
+    {}
+};
+
 struct OTR_LOGIC_EXPORT tailview_settings final
 {
     value<double> min_yaw_deg;
@@ -85,6 +104,11 @@ struct OTR_LOGIC_EXPORT tailview_settings final
     value<double> precision_yaw_scale;
     value<double> precision_pitch_scale;
     value<double> precision_roll_scale;
+    value<double> lean_x_cm;
+    value<double> lean_y_cm;
+    value<double> lean_z_cm;
+    value<int> lean_time_ms;
+    value<bool> lean_invert_x;
 
     tailview_settings(bundle b, const QString& prefix) :
         min_yaw_deg(b, prefix + "-min-yaw-deg", 140.0),
@@ -93,7 +117,12 @@ struct OTR_LOGIC_EXPORT tailview_settings final
         center_deadzone_deg(b, prefix + "-center-deadzone-deg", 2.0),
         precision_yaw_scale(b, prefix + "-precision-yaw-scale", 0.35),
         precision_pitch_scale(b, prefix + "-precision-pitch-scale", 0.50),
-        precision_roll_scale(b, prefix + "-precision-roll-scale", 0.50)
+        precision_roll_scale(b, prefix + "-precision-roll-scale", 0.50),
+        lean_x_cm(b, prefix + "-lean-x-cm", 0.0),
+        lean_y_cm(b, prefix + "-lean-y-cm", 0.0),
+        lean_z_cm(b, prefix + "-lean-z-cm", 0.0),
+        lean_time_ms(b, prefix + "-lean-time-ms", 150),
+        lean_invert_x(b, prefix + "-lean-invert-x", false)
     {}
 };
 
@@ -169,6 +198,7 @@ struct OTR_LOGIC_EXPORT main_settings final
     manual_translation_axis_settings manual_y { b, "manual-translation-y" };
     manual_translation_axis_settings manual_z { b, "manual-translation-z" };
     manual_translation_axis_settings manual_yaw { b, "manual-translation-yaw", -180.0, 180.0, 60.0 };
+    manual_yaw_lean_settings manual_yaw_lean { b, "manual-translation-yaw" };
     manual_translation_axis_settings* manual_translation_axes[4] { &manual_x, &manual_y, &manual_z, &manual_yaw };
 
     key_opts key_start_tracking1 { b, "start-tracking" };
@@ -200,6 +230,8 @@ struct OTR_LOGIC_EXPORT main_settings final
 
     key_opts key_precision1 { b, "precision" };
     key_opts key_precision2 { b, "precision-alt" };
+    key_opts key_precision_toggle1 { b, "precision-toggle" };
+    key_opts key_precision_toggle2 { b, "precision-toggle-alt" };
 
     key_opts key_tailview_left1 { b, "tailview-left" };
     key_opts key_tailview_left2 { b, "tailview-left-alt" };

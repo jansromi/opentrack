@@ -370,6 +370,7 @@ void manual_translation::set_input(Axis axis, bool positive, bool held)
 void manual_translation::reset()
 {
     positions = {};
+    manual_values = {};
     for (auto& detent : detents)
         reset_detent_state(detent);
     timer_started = false;
@@ -513,10 +514,17 @@ Pose manual_translation::apply(const main_settings& s, const Pose& value, bool f
         if (manual_keys)
             manual_value = std::clamp(positions[i], min, max);
 
+        manual_values[i] = disabled ? 0 : manual_value;
         output(i) = disabled ? 0 : tracked ? value(i) + manual_value : manual_value;
     }
 
     return output;
+}
+
+double manual_translation::manual_value(Axis axis) const
+{
+    const int idx = axis_index(axis);
+    return idx >= 0 ? manual_values[idx] : 0;
 }
 
 pipeline::pipeline(const Mappings& m, const runtime_libraries& libs, TrackLogger& logger) :
@@ -651,6 +659,11 @@ void pipeline::clear_tailview()
     tailview.output_anchor = {};
 }
 
+void pipeline::clear_tailview_lean()
+{
+    tailview_lean = {};
+}
+
 void pipeline::clear_upview()
 {
     upview.was_active = false;
@@ -665,6 +678,7 @@ void pipeline::maybe_set_center_pose(const centering_state mode, const Pose& val
         set_center(false);
         clear_precision();
         clear_tailview();
+        clear_tailview_lean();
         clear_upview();
         manual.reset();
 
@@ -836,7 +850,7 @@ Pose pipeline::apply_reltrans(Pose value, vec6_bool disabled, bool centerp)
 
 Pose pipeline::apply_precision(Pose value)
 {
-    const bool active = b.get(f_precision);
+    const bool active = b.get(f_precision) || b.get(f_precision_toggle);
 
     auto apply_active_precision = [this](const Pose& pose) {
         Pose out = pose;
@@ -910,6 +924,77 @@ Pose pipeline::apply_tailview(Pose value, bool suppressed)
     out(Roll) = tailview.output_anchor(Roll) + roll_delta * roll_scale;
 
     return out;
+}
+
+void pipeline::update_tailview_lean(tailview_direction direction)
+{
+    const double dt = tailview_lean_timer.elapsed_seconds();
+    tailview_lean_timer.start();
+
+    const auto& cfg = s.tailview;
+    const double lean_cm[3] = { cfg.lean_x_cm, cfg.lean_y_cm, cfg.lean_z_cm };
+    const double time = std::max(0, int(cfg.lean_time_ms)) * 1e-3;
+
+    Pose target;
+    if (direction != tailview_direction::none)
+    {
+        // +yaw looks right but +TX moves left (see reltrans::rotate), and +TZ moves back
+        const double side = (direction == tailview_direction::left ? 1.0 : -1.0) * (cfg.lean_invert_x ? -1.0 : 1.0);
+        target(TX) = side * lean_cm[TX];
+        target(TY) = lean_cm[TY];
+        target(TZ) = -lean_cm[TZ];
+    }
+
+    for (int i = TX; i <= TZ; i++)
+    {
+        if (time <= 0)
+            tailview_lean(i) = target(i);
+        else
+        {
+            // linear, so a full lean eases in or out over the lean time
+            const double step = std::max(std::fabs(lean_cm[i]), std::fabs(tailview_lean(i))) * dt / time;
+            tailview_lean(i) += std::clamp(target(i) - tailview_lean(i), -step, step);
+        }
+    }
+}
+
+Pose pipeline::manual_yaw_lean() const
+{
+    const auto& cfg = s.manual_yaw_lean;
+    // only the manual/analog yaw, so turning the real head doesn't lean
+    double yaw = manual.manual_value(Yaw);
+    if (m(Yaw).opts.invert_post)
+        yaw = -yaw;
+
+    const double start = std::clamp(double(cfg.start_deg), 0.0, 180.0);
+    const double full = std::clamp(double(cfg.full_deg), start, 180.0);
+    double t = full > start ? (std::fabs(yaw) - start) / (full - start) : std::fabs(yaw) >= full ? 1.0 : 0.0;
+    t = std::clamp(t, 0.0, 1.0);
+    t = t * t * (3 - 2 * t);
+
+    // same convention as the Tail View lean: looking left (-yaw) leans to +TX
+    const double side = (yaw < 0 ? 1.0 : -1.0) * (cfg.invert_x ? -1.0 : 1.0);
+
+    Pose lean;
+    lean(TX) = side * cfg.x_cm * t;
+    lean(TY) = cfg.y_cm * t;
+    lean(TZ) = -cfg.z_cm * t;
+    return lean;
+}
+
+Pose pipeline::apply_lean(Pose value, bool zeroed)
+{
+    const tailview_direction direction = tailview.was_active ? tailview.direction : tailview_direction::none;
+    update_tailview_lean(direction);
+
+    // while Tail View is active its lean wins outright; otherwise take the larger lean per axis,
+    // so the Tail View lean still eases out after release
+    const Pose yaw_lean = direction != tailview_direction::none || zeroed ? Pose{} : manual_yaw_lean();
+
+    for (int i = TX; i <= TZ; i++)
+        value(i) += std::fabs(yaw_lean(i)) > std::fabs(tailview_lean(i)) ? yaw_lean(i) : tailview_lean(i);
+
+    return value;
 }
 
 Pose pipeline::apply_upview(Pose value, bool suppressed)
@@ -1062,6 +1147,7 @@ ok:
             value(i) = -value(i);
 
     value = apply_tailview(value, hold_ordered || zero_ordered || upview_requested);
+    value = apply_lean(value, zero_ordered);
     value = apply_upview(value, hold_ordered || zero_ordered);
 
     libs.pProtocol->pose(value, raw);
@@ -1221,6 +1307,7 @@ void pipeline::set_manual_translation_input(Axis axis, bool positive, bool held)
 void pipeline::toggle_zero() { b.negate(f_zero); }
 bool pipeline::is_zero() const { return !!(b.flags & f_zero); }
 void pipeline::toggle_enabled() { b.negate(f_enabled_p); }
+void pipeline::toggle_precision() { b.negate(f_precision_toggle); }
 bool pipeline::is_enabled() const { return !!(b.flags & f_enabled_p); }
 
 void bits::set(bit_flags flag, bool val)
@@ -1254,6 +1341,7 @@ bits::bits()
     set(f_enabled_h, true);
     set(f_zero, false);
     set(f_precision, false);
+    set(f_precision_toggle, false);
 }
 
 } // ns pipeline_impl

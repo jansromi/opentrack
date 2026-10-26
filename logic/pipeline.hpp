@@ -72,6 +72,7 @@ enum bit_flags : unsigned {
     f_enabled_p      = 1 << 3,
     f_zero           = 1 << 4,
     f_precision      = 1 << 5,
+    f_precision_toggle = 1 << 6,
 };
 
 struct OTR_LOGIC_EXPORT bits
@@ -101,6 +102,7 @@ class OTR_LOGIC_EXPORT manual_translation final
 
     std::array<std::atomic_bool, axis_count> negative_held, positive_held;
     std::array<double, axis_count> positions {};
+    std::array<double, axis_count> manual_values {};
     std::array<detent_state, axis_count> detents {};
     std::array<translation_control_mode, axis_count> last_modes {};
     std::array<bool, axis_count> mode_initialized {};
@@ -128,6 +130,7 @@ public:
     void set_input(Axis axis, bool positive, bool held);
     void reset();
     Pose apply(const main_settings& s, const Pose& value, bool frozen);
+    double manual_value(Axis axis) const;
 };
 
 class OTR_LOGIC_EXPORT pipeline : private QThread
@@ -196,6 +199,8 @@ class OTR_LOGIC_EXPORT pipeline : private QThread
     std::atomic_bool upview_held { false };
     tailview_inputs tailview_input;
     tailview_runtime tailview;
+    Pose tailview_lean;
+    Timer tailview_lean_timer;
     anchored_view_runtime upview;
 
     time_units::ms backlog_time {};
@@ -209,6 +214,7 @@ class OTR_LOGIC_EXPORT pipeline : private QThread
     void maybe_set_center_pose(const centering_state mode, const Pose& value, bool own_center_logic);
     void clear_precision();
     void clear_tailview();
+    void clear_tailview_lean();
     void clear_upview();
     Pose apply_center(const centering_state mode, Pose value) const;
     Pose apply_camera_offset(Pose value) const;
@@ -217,6 +223,9 @@ class OTR_LOGIC_EXPORT pipeline : private QThread
     Pose apply_reltrans(Pose value, vec6_bool disabled, bool centerp);
     Pose apply_precision(Pose value);
     Pose apply_tailview(Pose value, bool suppressed);
+    void update_tailview_lean(tailview_direction direction);
+    Pose manual_yaw_lean() const;
+    Pose apply_lean(Pose value, bool zeroed);
     Pose apply_upview(Pose value, bool suppressed);
     Pose apply_zero_pos(Pose value) const;
 
@@ -232,6 +241,7 @@ public:
     void toggle_zero();
     bool is_zero() const;
     void toggle_enabled();
+    void toggle_precision();
     bool is_enabled() const;
 
     void set_center(bool value);
