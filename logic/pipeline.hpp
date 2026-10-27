@@ -98,6 +98,12 @@ class OTR_LOGIC_EXPORT manual_translation final
         int direction = 0;
     };
 
+    struct detent_point final
+    {
+        double value = 0;
+        bool hard = false;
+    };
+
     static constexpr int axis_count = 4;
 
     std::array<std::atomic_bool, axis_count> negative_held, positive_held;
@@ -114,10 +120,12 @@ class OTR_LOGIC_EXPORT manual_translation final
 
     static int axis_index(Axis axis);
     static std::pair<double, double> limits(const main_settings_impl::manual_translation_axis_settings& axis);
-    static std::vector<double> detent_positions(const main_settings_impl::manual_translation_axis_settings& axis,
-                                                double min, double max);
-    static bool find_crossed_detent(const std::vector<double>& detents, double start, double target,
+    static std::vector<detent_point> detent_positions(const main_settings_impl::manual_translation_axis_settings& axis,
+                                                      double min, double max);
+    static bool find_crossed_detent(const std::vector<detent_point>& detents, double start, double target,
                                     int direction, double& detent);
+    static double apply_hard_stops(const std::vector<detent_point>& detents, double start, double target,
+                                   int direction);
     void reset_axis_state(int idx);
     static void reset_detent_state(detent_state& state);
 #ifdef _WIN32

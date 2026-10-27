@@ -214,7 +214,7 @@ void options_dialog::setup_manual_translation_ui()
             widgets.speed->setRange(0.0, 360.0);
             widgets.speed->setSuffix(tr("°/s"));
             widgets.detent_positions->setPlaceholderText(tr("-135, 0, 135"));
-            widgets.detent_positions->setToolTip(tr("Comma, semicolon, or space separated detent points in degrees"));
+            widgets.detent_positions->setToolTip(tr("Comma, semicolon, or space separated detent points in degrees; end a point with ! to make it a hard stop (e.g. 135!)"));
         }
         else
         {
@@ -223,7 +223,7 @@ void options_dialog::setup_manual_translation_ui()
             widgets.speed->setRange(0.0, 600.0);
             widgets.speed->setSuffix(tr(" cm/s"));
             widgets.detent_positions->setPlaceholderText(tr("-33, 0, 33"));
-            widgets.detent_positions->setToolTip(tr("Comma, semicolon, or space separated detent points in cm"));
+            widgets.detent_positions->setToolTip(tr("Comma, semicolon, or space separated detent points in cm; end a point with ! to make it a hard stop (e.g. 33!)"));
         }
 
         widgets.detent_delay->setDecimals(2);
