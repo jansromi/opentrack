@@ -30,7 +30,8 @@ public:
     options_dialog(std::unique_ptr<ITrackerDialog>& tracker_dialog_,
                    std::unique_ptr<IProtocolDialog>& proto_dialog_,
                    std::unique_ptr<IFilterDialog>& filter_dialog_,
-                   std::function<void(bool)> pause_keybindings);
+                   std::function<void(bool)> pause_keybindings,
+                   std::function<void(bool)> overlay_place_mode);
     ~options_dialog() override;
     inline bool embeddable() noexcept { return false; }
     void switch_to_tracker_tab();
@@ -52,7 +53,9 @@ private:
     static QString kopts_to_string(const key_opts& opts);
 
     main_settings main;
+    overlay_settings overlay;
     std::function<void(bool)> pause_keybindings;
+    std::function<void(bool)> overlay_place_mode;
     Ui::options_dialog ui;
 
     struct manual_axis_widgets final
@@ -76,6 +79,8 @@ private:
 
     std::array<manual_axis_widgets, 4> manual_axes {};
     QComboBox* manual_analog_device = nullptr;
+    QComboBox* overlay_screen = nullptr;
+    QPushButton* overlay_place = nullptr;
 
     ITrackerDialog*  tracker_dialog = nullptr;
     IProtocolDialog* proto_dialog   = nullptr;
@@ -86,6 +91,8 @@ private:
                                  QLabel*& text, QPushButton*& button);
     void refresh_manual_translation_ui();
     void connect_binding_controls(key_opts& kopts, QLabel* label, QPushButton* button);
+    void setup_overlay_ui();
+    void refresh_overlay_screens();
 
 private slots:
     void doOK();

@@ -76,13 +76,15 @@ main_window::main_window()
     connect(&det_timer, &QTimer::timeout,
             this, &main_window::maybe_start_profile_from_executable);
     det_timer.start(1000);
-    overlay = status_overlay::maybe_create([this]() -> std::optional<pipeline_status> {
+    overlay = std::make_unique<status_overlay>([this]() -> std::optional<pipeline_status> {
         if (!work)
             return std::nullopt;
         return work->pipeline_.status();
     });
     connect(&*s.b, &options::bundle_::reloading, this, &main_window::register_shortcuts);
     connect(&*s.b, &options::bundle_::saving, this, &main_window::register_shortcuts);
+    connect(&*overlay_s.b, &options::bundle_::reloading, this, &main_window::register_shortcuts);
+    connect(&*overlay_s.b, &options::bundle_::saving, this, &main_window::register_shortcuts);
 
     ui.btnStartTracker->setFocus();
 #ifdef UI_NO_VIDEO_FEED
@@ -310,6 +312,9 @@ void main_window::register_shortcuts()
 
         { s.key_restart_tracking1, [this](bool) { restart_tracker(); }, true },
         { s.key_restart_tracking2, [this](bool) { restart_tracker(); }, true },
+
+        { overlay_s.key_toggle1, [this](bool) { toggle_overlay(); }, true },
+        { overlay_s.key_toggle2, [this](bool) { toggle_overlay(); }, true },
     });
 
     if (work)
@@ -807,7 +812,8 @@ void main_window::show_options_dialog(bool show)
               embed ? pTrackerDialog : empty_ITD,
               embed ? pProtocolDialog : empty_IPD,
               embed ? pFilterDialog : empty_IFD,
-              [this](bool flag) { set_keys_enabled(!flag); });
+              [this](bool flag) { set_keys_enabled(!flag); },
+              [this](bool enable) { if (overlay) overlay->set_place_mode(enable); });
 
     if (work)
     {

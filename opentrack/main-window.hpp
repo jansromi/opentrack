@@ -70,6 +70,7 @@ class main_window final : public QMainWindow, private State
     std::unique_ptr<IProtocolDialog> pProtocolDialog;
     std::unique_ptr<ITrackerDialog> pTrackerDialog;
     std::unique_ptr<status_overlay> overlay;
+    overlay_settings overlay_s;
 
     process_detector_worker det;
     QMenu profile_menu;
@@ -91,6 +92,7 @@ class main_window final : public QMainWindow, private State
     qt_signal<void> stop_tracker { this, &main_window::stop_tracker_, Qt::QueuedConnection };
     qt_signal<void> toggle_tracker { this, &main_window::toggle_tracker_, Qt::QueuedConnection };
     qt_signal<void> restart_tracker { this, &main_window::restart_tracker_, Qt::QueuedConnection };
+    qt_signal<void> toggle_overlay { this, &main_window::toggle_overlay_, Qt::QueuedConnection };
 
 public:
     void init_dylibs();
@@ -132,6 +134,7 @@ public:
     void stop_tracker_();
     void restart_tracker_();
     void toggle_tracker_();
+    void toggle_overlay_() { if (overlay) overlay->toggle_visible(); }
     bool tracker_running() const;
 
     [[nodiscard]] bool create_profile_from_preset(const QString& name);

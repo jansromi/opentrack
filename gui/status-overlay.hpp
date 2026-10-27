@@ -29,18 +29,22 @@ public:
     // empty while there's nothing to show, e.g. tracking is stopped
     using source_fn = std::function<std::optional<pipeline_status>()>;
 
-    // OPENTRACK_OVERLAY=1 shows the pipeline status, =fake cycles through example states;
-    // OPENTRACK_OVERLAY_PLACE=1 starts in place mode
-    static std::unique_ptr<status_overlay> maybe_create(source_fn source);
+    // OPENTRACK_OVERLAY=fake shows it regardless of the settings, cycling through example states
+    explicit status_overlay(source_fn source);
 
-    explicit status_overlay(source_fn source, bool fake = false);
+    // the hotkey: flips the enabled setting until restart, without saving it
+    void toggle_visible();
 
     // the overlay takes the mouse and can be dragged; on release it snaps to the nearest anchor
-    // of the monitor it was dropped on and saves that placement
+    // of the monitor it was dropped on and stores that placement, for the options dialog to save
     void set_place_mode(bool enable);
     bool place_mode() const { return placing; }
 
     static overlay_placement::screen_identity identity(const QScreen* screen);
+    // "N: manufacturer model (WxH)", N counting from 1 in QGuiApplication::screens() order
+    static QString screen_label(const QScreen* screen, int index);
+    // briefly shows each screen's number from screen_label() in big type on that screen
+    static void identify_screens();
 
 protected:
     void paintEvent(QPaintEvent*) override;
@@ -80,6 +84,8 @@ private:
     static model make_model(const pipeline_status& status);
     static pipeline_status fake_status(double t);
 
+    bool active() const;
+    void apply_settings();
     void refresh();
     void relayout();
     QScreen* target_screen() const;
@@ -94,6 +100,9 @@ private:
     model current;
     QFont font, modifier_font;
     int text_size = 14;
+    QColor background;
+    bool toggled = false;
+    bool last_enabled = false;
 
     overlay_settings s;
     QPointer<QScreen> screen_;

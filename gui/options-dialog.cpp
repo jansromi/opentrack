@@ -8,6 +8,7 @@
 
 #include "options-dialog.hpp"
 #include "listener.h"
+#include "status-overlay.hpp"
 
 #include <utility>
 
@@ -17,8 +18,13 @@
 #include <QFileDialog>
 #include <QCheckBox>
 #include <QDoubleSpinBox>
+#include <QFormLayout>
 #include <QGridLayout>
 #include <QGroupBox>
+#include <QGuiApplication>
+#include <QScreen>
+#include <QSignalBlocker>
+#include <QSpinBox>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
@@ -342,6 +348,194 @@ void options_dialog::setup_manual_translation_ui()
     shortcuts_layout->insertWidget(1, shortcuts_group);
 }
 
+void options_dialog::setup_overlay_ui()
+{
+    auto* tab = new QWidget(this);
+    auto* tab_layout = new QVBoxLayout(tab);
+
+    {
+        auto* group = new QGroupBox(tr("Status overlay"), tab);
+        auto* form = new QFormLayout(group);
+
+        auto* enabled = new QCheckBox(tr("Show the status overlay"), group);
+        auto* only_while_tracking = new QCheckBox(tr("Only while tracking"), group);
+        auto* show_modifiers = new QCheckBox(tr("Active modifiers"), group);
+        auto* show_axes = new QCheckBox(tr("Axis table"), group);
+
+        auto* text_size = new QComboBox(group);
+        text_size->addItem(tr("Small"), overlay_text_small);
+        text_size->addItem(tr("Medium"), overlay_text_medium);
+        text_size->addItem(tr("Large"), overlay_text_large);
+        text_size->addItem(tr("Extra large"), overlay_text_xl);
+
+        auto* opacity = new QSpinBox(group);
+        opacity->setRange(0, 100);
+        opacity->setSingleStep(5);
+        opacity->setSuffix(tr("%"));
+
+        auto* contents = new QHBoxLayout;
+        contents->addWidget(show_modifiers);
+        contents->addWidget(show_axes);
+        contents->addStretch();
+
+        form->addRow(enabled);
+        form->addRow(only_while_tracking);
+        form->addRow(tr("Show"), contents);
+        form->addRow(tr("Text size"), text_size);
+        form->addRow(tr("Background opacity"), opacity);
+
+        tie_setting(overlay.enabled, enabled);
+        tie_setting(overlay.only_while_tracking, only_while_tracking);
+        tie_setting(overlay.show_modifiers, show_modifiers);
+        tie_setting(overlay.show_axes, show_axes);
+        tie_setting(overlay.text_size, text_size);
+        tie_setting(overlay.opacity, opacity);
+
+        tab_layout->addWidget(group);
+    }
+
+    {
+        auto* group = new QGroupBox(tr("Placement"), tab);
+        auto* form = new QFormLayout(group);
+
+        overlay_screen = new QComboBox(group);
+        auto* identify = new QPushButton(tr("Identify"), group);
+        identify->setToolTip(tr("Show each monitor's number on it"));
+        auto* screen_row = new QHBoxLayout;
+        screen_row->addWidget(overlay_screen, 1);
+        screen_row->addWidget(identify);
+
+        auto* anchor = new QComboBox(group);
+        const std::pair<QString, overlay_anchor> anchors[] = {
+            { tr("Top left"), overlay_top_left },
+            { tr("Top"), overlay_top },
+            { tr("Top right"), overlay_top_right },
+            { tr("Left"), overlay_left },
+            { tr("Center"), overlay_center },
+            { tr("Right"), overlay_right },
+            { tr("Bottom left"), overlay_bottom_left },
+            { tr("Bottom"), overlay_bottom },
+            { tr("Bottom right"), overlay_bottom_right },
+        };
+        for (const auto& [name, value] : anchors)
+            anchor->addItem(name, value);
+
+        auto* offset_x = new QSpinBox(group);
+        auto* offset_y = new QSpinBox(group);
+        for (QSpinBox* spin : { offset_x, offset_y })
+        {
+            spin->setRange(-9999, 9999);
+            spin->setSuffix(tr(" px"));
+            spin->setToolTip(tr("Distance from the anchored edge of the monitor; for a centered anchor, a shift right or down"));
+        }
+        auto* offset_row = new QHBoxLayout;
+        offset_row->addWidget(new QLabel(tr("X"), group));
+        offset_row->addWidget(offset_x);
+        offset_row->addWidget(new QLabel(tr("Y"), group));
+        offset_row->addWidget(offset_y);
+        offset_row->addStretch();
+
+        overlay_place = new QPushButton(tr("Drag to place"), group);
+        overlay_place->setCheckable(true);
+        overlay_place->setToolTip(tr("Shows the overlay so it can be dragged with the mouse; it snaps to the nearest anchor of the monitor it's dropped on"));
+
+        form->addRow(tr("Monitor"), screen_row);
+        form->addRow(tr("Anchor"), anchor);
+        form->addRow(tr("Offset"), offset_row);
+        form->addRow(QString(), overlay_place);
+
+        tie_setting(overlay.anchor, anchor);
+        tie_setting(overlay.offset_x, offset_x);
+        tie_setting(overlay.offset_y, offset_y);
+
+        connect(identify, &QPushButton::clicked, this, [] { status_overlay::identify_screens(); });
+        connect(overlay_place, &QPushButton::toggled, this, [this](bool on) {
+            if (overlay_place_mode)
+                overlay_place_mode(on);
+        });
+        connect(overlay_screen,
+                static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged),
+                this,
+                [this](int idx) {
+                    const QList<QScreen*> screens = QGuiApplication::screens();
+                    const int i = overlay_screen->itemData(idx).toInt();
+                    // -1 is a saved monitor that isn't connected; keep it
+                    if (i < 0 || i >= int(screens.size()))
+                        return;
+                    const auto id = status_overlay::identity(screens[i]);
+                    overlay.screen_name = id.name;
+                    overlay.screen_manufacturer = id.manufacturer;
+                    overlay.screen_model = id.model;
+                    overlay.screen_serial = id.serial;
+                });
+
+        connect(qGuiApp, &QGuiApplication::screenAdded, this, &options_dialog::refresh_overlay_screens);
+        connect(qGuiApp, &QGuiApplication::screenRemoved, this, &options_dialog::refresh_overlay_screens);
+        connect(qGuiApp, &QGuiApplication::primaryScreenChanged, this, &options_dialog::refresh_overlay_screens);
+        // dropping the overlay in place mode, or a reload, can change the monitor
+        connect(&*overlay.b, &options::bundle_::changed, this, &options_dialog::refresh_overlay_screens);
+        refresh_overlay_screens();
+
+        tab_layout->addWidget(group);
+    }
+
+    {
+        auto* group = new QGroupBox(tr("Shortcuts"), tab);
+        auto* grid = new QGridLayout(group);
+        QLabel* text1 = nullptr;
+        QLabel* text2 = nullptr;
+        QPushButton* bind1 = nullptr;
+        QPushButton* bind2 = nullptr;
+
+        add_manual_shortcut_row(grid, 0, tr("Show/hide overlay"), text1, bind1);
+        add_manual_shortcut_row(grid, 1, tr("Show/hide overlay (alt)"), text2, bind2);
+        grid->setColumnStretch(1, 1);
+        connect_binding_controls(overlay.key_toggle1, text1, bind1);
+        connect_binding_controls(overlay.key_toggle2, text2, bind2);
+
+        tab_layout->addWidget(group);
+    }
+
+    tab_layout->addStretch();
+    ui.tabWidget->addTab(tab, tr("Overlay"));
+}
+
+void options_dialog::refresh_overlay_screens()
+{
+    if (!overlay_screen)
+        return;
+
+    const QSignalBlocker blocker(overlay_screen);
+    overlay_screen->clear();
+
+    const QList<QScreen*> screens = QGuiApplication::screens();
+    std::vector<overlay_placement::screen_identity> ids;
+    for (int i = 0; i < int(screens.size()); i++)
+    {
+        overlay_screen->addItem(status_overlay::screen_label(screens[i], i), i);
+        ids.push_back(status_overlay::identity(screens[i]));
+    }
+
+    const overlay_placement::screen_identity saved {
+        overlay.screen_name, overlay.screen_manufacturer, overlay.screen_model, overlay.screen_serial,
+    };
+    int idx = overlay_placement::match_screen(saved, ids);
+
+    if (idx < 0 && saved != overlay_placement::screen_identity {})
+    {
+        // the overlay is on the primary monitor meanwhile, but goes back once this one is connected
+        QString name = QStringLiteral("%1 %2").arg(saved.manufacturer, saved.model).simplified();
+        if (name.isEmpty())
+            name = saved.name;
+        overlay_screen->addItem(tr("%1 (not connected)").arg(name), -1);
+        idx = overlay_screen->count() - 1;
+    }
+    else if (idx < 0)
+        idx = int(screens.indexOf(QGuiApplication::primaryScreen()));
+
+    overlay_screen->setCurrentIndex(idx);
+}
+
 void options_dialog::refresh_manual_translation_ui()
 {
     QComboBox* sources[] { ui.src_x, ui.src_y, ui.src_z, ui.src_yaw };
@@ -383,8 +577,10 @@ void options_dialog::refresh_manual_translation_ui()
 options_dialog::options_dialog(std::unique_ptr<ITrackerDialog>& tracker_dialog_,
                                std::unique_ptr<IProtocolDialog>& proto_dialog_,
                                std::unique_ptr<IFilterDialog>& filter_dialog_,
-                               std::function<void(bool)> pause_keybindings) :
-    pause_keybindings(std::move(pause_keybindings))
+                               std::function<void(bool)> pause_keybindings,
+                               std::function<void(bool)> overlay_place_mode) :
+    pause_keybindings(std::move(pause_keybindings)),
+    overlay_place_mode(std::move(overlay_place_mode))
 {
     ui.setupUi(this);
 
@@ -561,6 +757,7 @@ options_dialog::options_dialog(std::unique_ptr<ITrackerDialog>& tracker_dialog_,
     connect_binding_controls(main.manual_yaw.negative_key, manual_axes[3].negative_text, manual_axes[3].negative_bind);
     connect_binding_controls(main.manual_yaw.positive_key, manual_axes[3].positive_text, manual_axes[3].positive_bind);
     refresh_manual_translation_ui();
+    setup_overlay_ui();
 
     auto add_module_tab = [this] (auto& place, auto&& dlg, const QString& label) {
         if (dlg && dlg->embeddable())
@@ -742,6 +939,7 @@ void options_dialog::save()
 {
     qDebug() << "options_dialog: save";
     main.b->save();
+    overlay.b->save();
     ui.game_detector->save();
     set_disable_translation_state(ui.disable_translation->isChecked());
 
@@ -756,6 +954,7 @@ void options_dialog::reload()
     ui.game_detector->revert();
 
     main.b->reload();
+    overlay.b->reload();
     for (auto* dlg : module_list{ tracker_dialog, proto_dialog, filter_dialog })
         if (dlg)
             dlg->reload();
@@ -782,12 +981,16 @@ void options_dialog::doCancel()
 void options_dialog::doAccept()
 {
     qDebug() << "options_dialog: doAccept";
+    if (overlay_place)
+        overlay_place->setChecked(false);
     save();
 }
 
 void options_dialog::doReject()
 {
     qDebug() << "options_dialog: doReject";
+    if (overlay_place)
+        overlay_place->setChecked(false);
     reload();
 }
 

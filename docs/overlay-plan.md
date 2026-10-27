@@ -140,23 +140,28 @@ monitor and update the settings.
 Implemented in `gui/overlay-placement.*` (matching, anchor position, snapping;
 plain QtCore so it can be tested without the monitors) and `status_overlay`.
 The settings are the `overlay_settings` bundle (`status-overlay`) in
-`logic/main-settings.hpp`. Until the Overlay tab exists,
-`OPENTRACK_OVERLAY_PLACE=1` starts in place mode, which also shows the overlay
-while tracking is stopped.
+`logic/main-settings.hpp`. Place mode is started from the Overlay tab and also
+shows the overlay while tracking is stopped. A drop only stores the placement;
+the dialog's OK saves it and Cancel reverts it.
 
 ### 4. Settings
 
-New `overlay_settings` bundle (in `logic/main-settings.hpp` or a new bundle):
-- enabled, show only while tracking
+`overlay_settings` bundle in `logic/main-settings.hpp`:
+- enabled, show only while tracking (otherwise a dimmed `STOPPED` is shown)
 - monitor identity (name, manufacturer, model, serial), anchor, offset X/Y
-- font size, opacity, background on/off
-- which items to show (axis rows, modifier line, raw values, per-axis
-  visibility)
-- refresh interval
-- toggle hotkey (bound through the existing keybinding worker, keyboard or
-  joystick)
+- text size (S / M / L / XL), background opacity (0% means no background)
+- which parts to show: the modifier list, the axis table
+- show/hide hotkey, two slots, bound like the other shortcuts (keyboard or
+  joystick). It flips the enabled setting until restart without saving it,
+  and stops applying once the setting itself is changed.
 
-New *Overlay* tab in `gui/options-dialog.*`.
+*Overlay* tab in `gui/options-dialog.*`, built in code like the manual
+translation UI. Its monitor dropdown lists `N: <manufacturer> <model> (WxH)`
+with the native resolution, plus `<model> (not connected)` for a saved monitor
+that is missing, so opening the dialog doesn't overwrite it.
+
+Not done (add if they turn out to be needed): per-axis row visibility, a raw
+value column, a refresh interval setting (fixed at 80 ms).
 
 ### 5. Windows-specific pass
 
@@ -177,6 +182,10 @@ New *Overlay* tab in `gui/options-dialog.*`.
 - Check placement on a monitor left of or above the primary (negative
   coordinates).
 - Make sure the overlay never shows up in the taskbar or Alt-Tab.
+- Check the show/hide hotkey (keyboard and joystick button) while the sim has
+  focus.
+- Check *Identify* puts the right number on each monitor and the dropdown
+  labels are recognizable.
 
 ## What can be tested where
 
@@ -190,8 +199,8 @@ New *Overlay* tab in `gui/options-dialog.*`.
 | Visible on the secondary monitor while the sim has focus | ✅ (any app) | ✅ |
 | On top of a borderless game on the same monitor | — | ✅ |
 
-A debug setting or env var (`OPENTRACK_OVERLAY_FAKE_STATUS=1`) feeds a
-cycling fake `pipeline_status`, so every state can be seen on macOS.
+`OPENTRACK_OVERLAY=fake` shows the overlay regardless of the settings and
+feeds it a cycling fake `pipeline_status`, so every state can be seen on macOS.
 
 ## Milestones
 
@@ -203,8 +212,8 @@ cycling fake `pipeline_status`, so every state can be seen on macOS.
    status mode.
 4. ~~**Placement**: monitor matching, anchor and offset, hotplug, optional place
    mode.~~ Done; multi-monitor behaviour still needs the Windows pass.
-5. **Settings UI**: Overlay tab (with the monitor dropdown and *Identify*),
-   place mode toggle, toggle hotkey.
+5. ~~**Settings UI**: Overlay tab (with the monitor dropdown and *Identify*),
+   place mode toggle, toggle hotkey.~~ Done.
 6. **Windows pass**: on-top behaviour over games, joystick row, scaling, README
    entry.
 

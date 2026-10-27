@@ -6,6 +6,7 @@
 #include <QFontDatabase>
 #include <QFontMetrics>
 #include <QGuiApplication>
+#include <QLabel>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPen>
@@ -79,21 +80,10 @@ bool is_analog(axis_source source)
 
 } // ns
 
-std::unique_ptr<status_overlay> status_overlay::maybe_create(source_fn source)
-{
-    const QByteArray mode = qgetenv("OPENTRACK_OVERLAY");
-    if (mode.isEmpty() || mode == "0")
-        return nullptr;
-    auto overlay = std::make_unique<status_overlay>(std::move(source), mode == "fake");
-    if (qgetenv("OPENTRACK_OVERLAY_PLACE") == "1")
-        overlay->set_place_mode(true);
-    return overlay;
-}
-
-status_overlay::status_overlay(source_fn source, bool fake) :
+status_overlay::status_overlay(source_fn source) :
     QWidget(nullptr, Qt::Tool | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint |
                      Qt::WindowTransparentForInput | Qt::WindowDoesNotAcceptFocus),
-    source(std::move(source)), fake(fake)
+    source(std::move(source)), fake(qgetenv("OPENTRACK_OVERLAY") == "fake")
 {
     setAttribute(Qt::WA_TranslucentBackground);
     setAttribute(Qt::WA_ShowWithoutActivating);
@@ -103,24 +93,104 @@ status_overlay::status_overlay(source_fn source, bool fake) :
     setWindowTitle(tr("opentrack status"));
 
     font = QFontDatabase::systemFont(QFontDatabase::FixedFont);
-    font.setPixelSize(text_size);
     modifier_font = font;
-    modifier_font.setPixelSize(int(std::lround(text_size * 1.15)));
     modifier_font.setWeight(QFont::DemiBold);
+    last_enabled = s.enabled;
 
     connect(qGuiApp, &QGuiApplication::screenAdded, this, &status_overlay::place_later);
     connect(qGuiApp, &QGuiApplication::screenRemoved, this, &status_overlay::place_later);
     connect(qGuiApp, &QGuiApplication::primaryScreenChanged, this, &status_overlay::place_later);
-    connect(&*s.b, &options::bundle_::changed, this, &status_overlay::place_later);
+    // also on reload, e.g. a profile switch or cancelling the options dialog
+    connect(&*s.b, &options::bundle_::changed, this, &status_overlay::apply_settings);
 
     connect(&timer, &QTimer::timeout, this, &status_overlay::refresh);
-    timer.start(refresh_ms);
+    apply_settings();
+}
+
+bool status_overlay::active() const
+{
+    return fake || placing || s.enabled != toggled;
+}
+
+void status_overlay::toggle_visible()
+{
+    toggled = !toggled;
+    apply_settings();
+}
+
+void status_overlay::apply_settings()
+{
+    // the hotkey only overrides the setting until the setting itself changes
+    if (s.enabled != last_enabled)
+    {
+        last_enabled = s.enabled;
+        toggled = false;
+    }
+
+    constexpr int text_sizes[] = { 12, 14, 18, 24 };
+    text_size = text_sizes[std::clamp(int(s.text_size), 0, 3)];
+    font.setPixelSize(text_size);
+    modifier_font.setPixelSize(int(std::lround(text_size * 1.15)));
+
+    background = colors::background;
+    background.setAlpha(std::clamp(int(s.opacity), 0, 100) * 255 / 100);
+
+    if (!active())
+        timer.stop();
+    else if (!timer.isActive())
+        timer.start(refresh_ms);
+
+    // relayout even if the content is the same, the fonts may have changed
+    current = {};
     refresh();
+    update();
+    place_later();
 }
 
 screen_identity status_overlay::identity(const QScreen* screen)
 {
     return { screen->name(), screen->manufacturer(), screen->model(), screen->serialNumber() };
+}
+
+QString status_overlay::screen_label(const QScreen* screen, int index)
+{
+    QString name = QStringLiteral("%1 %2").arg(screen->manufacturer(), screen->model()).simplified();
+    if (name.isEmpty())
+        name = screen->name();
+    // the monitor's own resolution is easier to recognize than the scaled one
+    const QSize size = screen->geometry().size() * screen->devicePixelRatio();
+    return QStringLiteral("%1: %2 (%3×%4)").arg(index + 1).arg(name).arg(size.width()).arg(size.height());
+}
+
+void status_overlay::identify_screens()
+{
+    constexpr int box = 240;
+    const QList<QScreen*> screens = QGuiApplication::screens();
+
+    for (int i = 0; i < int(screens.size()); i++)
+    {
+        auto* window = new QWidget(nullptr, Qt::Tool | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint |
+                                            Qt::WindowTransparentForInput | Qt::WindowDoesNotAcceptFocus);
+        window->setAttribute(Qt::WA_DeleteOnClose);
+        window->setAttribute(Qt::WA_TranslucentBackground);
+        window->setAttribute(Qt::WA_ShowWithoutActivating);
+        window->setAttribute(Qt::WA_TransparentForMouseEvents);
+        window->setAttribute(Qt::WA_MacAlwaysShowToolWindow);
+        window->setFixedSize(box, box);
+
+        // a child, since a translucent top-level window skips the style sheet background
+        auto* label = new QLabel(QString::number(i + 1), window);
+        label->setAlignment(Qt::AlignCenter);
+        label->setStyleSheet(QStringLiteral("QLabel { background: rgba(12, 14, 18, 220); color: #e7e9ec;"
+                                            " border-radius: 16px; font-size: 160px; font-weight: 600; }"));
+        label->setGeometry(0, 0, box, box);
+
+        QScreen* screen = screens[i];
+        window->setScreen(screen);
+        window->move(screen->geometry().center() - QPoint(box / 2, box / 2));
+        window->show();
+        QTimer::singleShot(2000, window, &QWidget::close);
+    }
 }
 
 status_overlay::model status_overlay::make_model(const pipeline_status& status)
@@ -239,6 +309,12 @@ status_overlay::model status_overlay::make_model(const pipeline_status& status)
 
 void status_overlay::refresh()
 {
+    if (!active())
+    {
+        hide();
+        return;
+    }
+
     std::optional<pipeline_status> status;
 
     if (fake)
@@ -249,21 +325,30 @@ void status_overlay::refresh()
     else if (source)
         status = source();
 
-    // there has to be something to drag
-    if (!status && placing)
-        status = pipeline_status {};
+    model m;
+    if (status)
+        m = make_model(*status);
+    // there has to be something to drag, at about the size it will be
+    else if (placing)
+        m = make_model(pipeline_status {});
+    else if (!s.only_while_tracking)
+        m.modifiers.push_back({ tr("STOPPED"), {}, colors::dim });
 
-    if (!status)
+    if (!s.show_modifiers)
+        m.modifiers.clear();
+    if (!s.show_axes)
+        m.rows.clear();
+    if (placing)
+        m.modifiers.insert(m.modifiers.begin(), { tr("DRAG TO PLACE"), {}, colors::fg });
+
+    const bool changed = m != current;
+    current = std::move(m);
+
+    if (current.modifiers.empty() && current.rows.empty())
     {
         hide();
         return;
     }
-
-    model m = make_model(*status);
-    if (placing)
-        m.modifiers.insert(m.modifiers.begin(), { tr("DRAG TO PLACE"), {}, colors::fg });
-    const bool changed = m != current;
-    current = std::move(m);
 
     if (changed)
     {
@@ -330,7 +415,8 @@ void status_overlay::relayout()
     const int w = 2 * l.pad_x + std::max(table_w, modifiers_w);
     const int mods_h = int(current.modifiers.size()) * l.modifier_h +
                        std::max(0, int(current.modifiers.size()) - 1) * l.modifier_gap;
-    const int table_h = current.rows.empty() ? 0 : l.gap + int(current.rows.size()) * l.row_h;
+    const int table_h = current.rows.empty() ? 0 :
+                        (current.modifiers.empty() ? 0 : l.gap) + int(current.rows.size()) * l.row_h;
     const int h = 2 * l.pad_y + mods_h + table_h;
 
     if (size() != QSize(w, h))
@@ -413,7 +499,7 @@ void status_overlay::set_place_mode(bool enable)
         place();
         show();
     }
-    refresh();
+    apply_settings();
 }
 
 void status_overlay::mousePressEvent(QMouseEvent* e)
@@ -463,7 +549,6 @@ void status_overlay::drop()
     s.anchor = p.anchor;
     s.offset_x = p.offset.x();
     s.offset_y = p.offset.y();
-    s.b->save();
 
     place();
 }
@@ -478,7 +563,7 @@ void status_overlay::paintEvent(QPaintEvent*)
     const metrics l = compute_layout(fm, mfm, text_size);
 
     p.setPen(Qt::NoPen);
-    p.setBrush(colors::background);
+    p.setBrush(background);
     p.drawRoundedRect(rect(), 6, 6);
 
     if (placing)
@@ -507,14 +592,16 @@ void status_overlay::paintEvent(QPaintEvent*)
 
         y += l.modifier_h + l.modifier_gap;
     }
-    y -= l.modifier_gap;
 
     if (current.rows.empty())
         return;
 
-    y += l.gap;
-    p.setPen(colors::dim);
-    p.drawLine(l.pad_x, y - l.gap / 2, width() - l.pad_x, y - l.gap / 2);
+    if (!current.modifiers.empty())
+    {
+        y += l.gap - l.modifier_gap;
+        p.setPen(colors::dim);
+        p.drawLine(l.pad_x, y - l.gap / 2, width() - l.pad_x, y - l.gap / 2);
+    }
 
     p.setFont(font);
     for (const row& r : current.rows)

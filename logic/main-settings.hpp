@@ -55,6 +55,14 @@ enum overlay_anchor : int
     overlay_bottom_right = 8,
 };
 
+enum overlay_text_size : int
+{
+    overlay_text_small  = 0,
+    overlay_text_medium = 1,
+    overlay_text_large  = 2,
+    overlay_text_xl     = 3,
+};
+
 namespace main_settings_impl {
 
 using namespace options;
@@ -265,6 +273,13 @@ struct OTR_LOGIC_EXPORT main_settings final
 struct OTR_LOGIC_EXPORT overlay_settings final
 {
     bundle b { make_bundle("status-overlay") };
+    value<bool> enabled { b, "enabled", false };
+    value<bool> only_while_tracking { b, "only-while-tracking", true };
+    value<overlay_text_size> text_size { b, "text-size", overlay_text_medium };
+    // background only, the text stays opaque
+    value<int> opacity { b, "background-opacity", 84 };
+    value<bool> show_modifiers { b, "show-modifiers", true };
+    value<bool> show_axes { b, "show-axes", true };
     // saved by identity, not index, since Windows reorders monitors after a reboot or replug
     value<QString> screen_name { b, "screen-name", {} };
     value<QString> screen_manufacturer { b, "screen-manufacturer", {} };
@@ -274,6 +289,9 @@ struct OTR_LOGIC_EXPORT overlay_settings final
     // logical pixels, inward from the anchored edges; along a centered direction, right/down
     value<int> offset_x { b, "offset-x", 16 };
     value<int> offset_y { b, "offset-y", 16 };
+    // shows or hides the overlay until restart, without changing the profile
+    key_opts key_toggle1 { b, "toggle" };
+    key_opts key_toggle2 { b, "toggle-alt" };
 
     overlay_settings();
 };
