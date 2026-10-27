@@ -356,25 +356,49 @@ bool manual_translation::find_crossed_detent(const std::vector<detent_point>& de
 }
 
 double manual_translation::apply_hard_stops(const std::vector<detent_point>& detents, double start, double target,
-                                            int direction)
+                                            int direction, int side)
 {
     constexpr double eps = 1e-6;
 
-    // hard stops can't be crossed from either side, sitting on one keeps the axis there
+    // hard stops can't be crossed from either side. sitting on one only blocks going on past it,
+    // the axis can always move back to the side it came from
+    auto blocks = [&](const detent_point& point) {
+        if (!point.hard)
+            return false;
+        if (std::fabs(point.value - start) <= eps)
+            return direction == -side;
+        return direction > 0 ? point.value > start : point.value < start;
+    };
+
     if (direction > 0)
     {
         for (const detent_point& point : detents)
-            if (point.hard && point.value >= start - eps)
+            if (blocks(point))
                 return std::max(start, std::min(target, point.value));
     }
     else if (direction < 0)
     {
         for (auto it = detents.rbegin(); it != detents.rend(); ++it)
-            if (it->hard && it->value <= start + eps)
+            if (blocks(*it))
                 return std::min(start, std::max(target, it->value));
     }
 
     return target;
+}
+
+int manual_translation::hard_stop_side(const std::vector<detent_point>& detents, double start, double position,
+                                       int direction, int side)
+{
+    constexpr double eps = 1e-6;
+
+    if (std::fabs(position - start) <= eps)
+        return side;
+
+    for (const detent_point& point : detents)
+        if (point.hard && std::fabs(point.value - position) <= eps)
+            return -direction;
+
+    return 0;
 }
 
 void manual_translation::reset_axis_state(int idx)
@@ -383,6 +407,7 @@ void manual_translation::reset_axis_state(int idx)
         return;
 
     positions[idx] = 0;
+    hard_stop_sides[idx] = 0;
     reset_detent_state(detents[idx]);
 }
 
@@ -421,6 +446,7 @@ void manual_translation::reset()
 {
     positions = {};
     manual_values = {};
+    hard_stop_sides = {};
     for (auto& detent : detents)
         reset_detent_state(detent);
     timer_started = false;
@@ -513,7 +539,7 @@ Pose manual_translation::apply(const main_settings& s, const Pose& value, bool f
                     const auto points = detents_active ? detent_positions(axis, min, max) : std::vector<detent_point>{};
                     const double target = apply_hard_stops(points, start,
                                                            std::clamp(start + double(direction) * double(axis.speed) * move_dt, min, max),
-                                                           direction);
+                                                           direction, hard_stop_sides[i]);
                     double detent = 0;
 
                     if (detents_active && find_crossed_detent(points, start, target, direction, detent))
@@ -526,6 +552,8 @@ Pose manual_translation::apply(const main_settings& s, const Pose& value, bool f
                     }
                     else
                         positions[i] = target;
+
+                    hard_stop_sides[i] = hard_stop_side(points, start, positions[i], direction, hard_stop_sides[i]);
                 }
             }
 
