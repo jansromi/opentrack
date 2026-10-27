@@ -160,6 +160,8 @@ class OTR_LOGIC_EXPORT manual_translation final
     std::array<bool, axis_count> mode_initialized {};
     std::array<detent_report, axis_count> reports {};
     bool analog_valid = false;
+    // side of the hard stop the axis is sitting on it came from, -1 below, 1 above, 0 none
+    std::array<int, axis_count> hard_stop_sides {};
     bool timer_started = false;
     Timer timer;
 #ifdef _WIN32
@@ -173,12 +175,14 @@ class OTR_LOGIC_EXPORT manual_translation final
     static bool find_crossed_detent(const std::vector<detent_point>& detents, double start, double target,
                                     int direction, double& detent);
     static double apply_hard_stops(const std::vector<detent_point>& detents, double start, double target,
-                                   int direction);
+                                   int direction, int side);
+    static int hard_stop_side(const std::vector<detent_point>& detents, double start, double position,
+                              int direction, int side);
     void reset_axis_state(int idx);
     static void reset_detent_state(detent_state& state);
     static detent_report report_detent(const main_settings_impl::manual_translation_axis_settings& axis,
                                        const detent_state& state, const std::vector<detent_point>& detents,
-                                       double position, int direction);
+                                       double position, int direction, int side);
 #ifdef _WIN32
     bool poll_analog_axes(const main_settings& s, int* axes);
 #endif
