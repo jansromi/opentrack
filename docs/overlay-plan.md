@@ -109,7 +109,9 @@ Settings:
   `N: <manufacturer> <model> (WxH)`, plus an *Identify* button that briefly
   shows a big number on each screen.
 - **Anchor**: one of 9 positions (corners, edge middles, center).
-- **Offset X/Y**: in pixels, relative to the anchor.
+- **Offset X/Y**: in logical pixels, inward from the anchored edges (so a
+  positive offset always moves the overlay onto the monitor); along a centered
+  direction, positive moves right/down. The result is clamped onto the monitor.
 
 Identifying a monitor: save `QScreen::name()`, `manufacturer()`, `model()` and
 `serialNumber()`, not the index, because Windows reorders monitors after a
@@ -128,11 +130,19 @@ Positioning:
 - Re-match and reposition on `screenAdded`, `screenRemoved`,
   `primaryScreenChanged` and `QScreen::geometryChanged`.
 - Different scaling per monitor: Qt 6 handles this on Windows by default.
-  Offsets are in the monitor's own pixels and font size is a setting.
+  Offsets are logical pixels, like the panel itself, so a margin keeps the same
+  size relative to the text at 100% and 150%. Font size is a setting.
 
 Optional **place mode**: temporarily drop `WindowTransparentForInput` so the
 overlay can be dragged; on release, snap to the nearest anchor on the current
 monitor and update the settings.
+
+Implemented in `gui/overlay-placement.*` (matching, anchor position, snapping;
+plain QtCore so it can be tested without the monitors) and `status_overlay`.
+The settings are the `overlay_settings` bundle (`status-overlay`) in
+`logic/main-settings.hpp`. Until the Overlay tab exists,
+`OPENTRACK_OVERLAY_PLACE=1` starts in place mode, which also shows the overlay
+while tracking is stopped.
 
 ### 4. Settings
 
@@ -157,7 +167,15 @@ New *Overlay* tab in `gui/options-dialog.*`.
   with `SetWindowPos(HWND_TOPMOST, …, SWP_NOACTIVATE)` on a timer or on
   `WM_WINDOWPOSCHANGING`.
 - Check the analog joystick row with real `win32_joy_ctx` data.
-- Check a mixed-scaling setup (e.g. 100% and 150%).
+- Check a mixed-scaling setup (e.g. 100% and 150%), including dragging the
+  overlay across the boundary in place mode.
+- Check monitor matching with real `QScreen` values: what `name()`,
+  `manufacturer()`, `model()` and `serialNumber()` return for each monitor,
+  that the overlay comes back after a reboot or replug that reorders them, and
+  that it falls back to the primary monitor (and returns) when its monitor is
+  unplugged.
+- Check placement on a monitor left of or above the primary (negative
+  coordinates).
 - Make sure the overlay never shows up in the taskbar or Alt-Tab.
 
 ## What can be tested where
@@ -183,9 +201,10 @@ cycling fake `pipeline_status`, so every state can be seen on macOS.
    hard-stop reporting.
 3. **Overlay window**: drawing, refresh timer, show/hide with tracking, fake
    status mode.
-4. **Placement**: monitor matching, anchor and offset, hotplug, optional place
-   mode.
-5. **Settings UI**: Overlay tab, toggle hotkey.
+4. ~~**Placement**: monitor matching, anchor and offset, hotplug, optional place
+   mode.~~ Done; multi-monitor behaviour still needs the Windows pass.
+5. **Settings UI**: Overlay tab (with the monitor dropdown and *Identify*),
+   place mode toggle, toggle hotkey.
 6. **Windows pass**: on-top behaviour over games, joystick row, scaling, README
    entry.
 

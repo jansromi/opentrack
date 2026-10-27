@@ -76,6 +76,11 @@ main_window::main_window()
     connect(&det_timer, &QTimer::timeout,
             this, &main_window::maybe_start_profile_from_executable);
     det_timer.start(1000);
+    overlay = status_overlay::maybe_create([this]() -> std::optional<pipeline_status> {
+        if (!work)
+            return std::nullopt;
+        return work->pipeline_.status();
+    });
     connect(&*s.b, &options::bundle_::reloading, this, &main_window::register_shortcuts);
     connect(&*s.b, &options::bundle_::saving, this, &main_window::register_shortcuts);
 

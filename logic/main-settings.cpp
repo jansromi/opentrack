@@ -6,5 +6,6 @@ using namespace options;
 
 main_settings::main_settings() = default;
 module_settings::module_settings() = default;
+overlay_settings::overlay_settings() = default;
 
 } // ns main_settings_impl

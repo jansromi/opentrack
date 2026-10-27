@@ -326,3 +326,6 @@ public:
 } // ns pipeline_impl
 
 using pipeline = pipeline_impl::pipeline;
+using pipeline_status = pipeline_impl::pipeline_status;
+using axis_status = pipeline_impl::axis_status;
+using axis_source = pipeline_impl::axis_source;

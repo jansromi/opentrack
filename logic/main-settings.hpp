@@ -41,6 +41,20 @@ enum translation_control_mode : int
     translation_tracked_manual_analog = 5,
 };
 
+// row * 3 + column, so the 3x3 grid can be computed
+enum overlay_anchor : int
+{
+    overlay_top_left     = 0,
+    overlay_top          = 1,
+    overlay_top_right    = 2,
+    overlay_left         = 3,
+    overlay_center       = 4,
+    overlay_right        = 5,
+    overlay_bottom_left  = 6,
+    overlay_bottom       = 7,
+    overlay_bottom_right = 8,
+};
+
 namespace main_settings_impl {
 
 using namespace options;
@@ -248,6 +262,22 @@ struct OTR_LOGIC_EXPORT main_settings final
     main_settings();
 };
 
+struct OTR_LOGIC_EXPORT overlay_settings final
+{
+    bundle b { make_bundle("status-overlay") };
+    // saved by identity, not index, since Windows reorders monitors after a reboot or replug
+    value<QString> screen_name { b, "screen-name", {} };
+    value<QString> screen_manufacturer { b, "screen-manufacturer", {} };
+    value<QString> screen_model { b, "screen-model", {} };
+    value<QString> screen_serial { b, "screen-serial", {} };
+    value<overlay_anchor> anchor { b, "anchor", overlay_top_right };
+    // logical pixels, inward from the anchored edges; along a centered direction, right/down
+    value<int> offset_x { b, "offset-x", 16 };
+    value<int> offset_y { b, "offset-y", 16 };
+
+    overlay_settings();
+};
+
 } // ns main_settings_impl
 
 using module_settings = main_settings_impl::module_settings;
@@ -255,3 +285,4 @@ using manual_translation_axis_settings = main_settings_impl::manual_translation_
 using tailview_settings = main_settings_impl::tailview_settings;
 using upview_settings = main_settings_impl::upview_settings;
 using main_settings = main_settings_impl::main_settings;
+using overlay_settings = main_settings_impl::overlay_settings;

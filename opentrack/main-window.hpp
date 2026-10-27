@@ -13,6 +13,7 @@
 #include "gui/mapping-dialog.hpp"
 #include "gui/options-dialog.hpp"
 #include "gui/process_detector.h"
+#include "gui/status-overlay.hpp"
 #include "logic/main-settings.hpp"
 #include "logic/pipeline.hpp"
 #include "input/shortcuts.h"
@@ -68,6 +69,7 @@ class main_window final : public QMainWindow, private State
     std::unique_ptr<IFilterDialog> pFilterDialog;
     std::unique_ptr<IProtocolDialog> pProtocolDialog;
     std::unique_ptr<ITrackerDialog> pTrackerDialog;
+    std::unique_ptr<status_overlay> overlay;
 
     process_detector_worker det;
     QMenu profile_menu;
