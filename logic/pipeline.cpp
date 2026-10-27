@@ -267,10 +267,11 @@ std::pair<double, double> manual_translation::limits(const main_settings_impl::m
     return min <= max ? std::pair<double, double>{min, max} : std::pair<double, double>{max, min};
 }
 
-std::vector<double> manual_translation::detent_positions(const main_settings_impl::manual_translation_axis_settings& axis,
-                                                         double min, double max)
+std::vector<manual_translation::detent_point>
+manual_translation::detent_positions(const main_settings_impl::manual_translation_axis_settings& axis,
+                                     double min, double max)
 {
-    std::vector<double> positions;
+    std::vector<detent_point> positions;
 
     if (!bool(axis.detents_enabled))
         return positions;
@@ -282,49 +283,98 @@ std::vector<double> manual_translation::detent_positions(const main_settings_imp
     const QStringList parts = text.split(QRegularExpression("[,;\\s]+"), Qt::SkipEmptyParts);
     positions.reserve(size_t(parts.size()));
 
-    for (const QString& part : parts)
+    // a trailing '!' makes the point a hard stop, a lone '!' applies to the point before it
+    bool last_parsed = false;
+
+    for (QString part : parts)
     {
+        bool hard = false;
+        while (part.endsWith('!'))
+        {
+            hard = true;
+            part.chop(1);
+        }
+
+        if (part.isEmpty())
+        {
+            if (hard && last_parsed)
+                positions.back().hard = true;
+            continue;
+        }
+
         bool ok = false;
         const double value = part.toDouble(&ok);
+        last_parsed = false;
 
         if (!ok || value < min || value > max)
             continue;
 
-        positions.push_back(value);
+        positions.push_back({ value, hard });
+        last_parsed = true;
     }
 
-    std::sort(positions.begin(), positions.end());
-    positions.erase(std::unique(positions.begin(), positions.end(),
-                                [](double a, double b) { return std::fabs(a - b) <= 1e-6; }),
-                    positions.end());
-    return positions;
+    std::sort(positions.begin(), positions.end(),
+              [](const detent_point& a, const detent_point& b) { return a.value < b.value; });
+
+    std::vector<detent_point> unique;
+    unique.reserve(positions.size());
+    for (const detent_point& point : positions)
+    {
+        if (!unique.empty() && std::fabs(unique.back().value - point.value) <= 1e-6)
+            unique.back().hard |= point.hard;
+        else
+            unique.push_back(point);
+    }
+    return unique;
 }
 
-bool manual_translation::find_crossed_detent(const std::vector<double>& detents, double start, double target,
+bool manual_translation::find_crossed_detent(const std::vector<detent_point>& detents, double start, double target,
                                              int direction, double& detent)
 {
     constexpr double eps = 1e-6;
 
     if (direction > 0)
     {
-        for (double value : detents)
-            if (value > start + eps && value <= target + eps)
+        for (const detent_point& point : detents)
+            if (point.value > start + eps && point.value <= target + eps)
             {
-                detent = value;
+                detent = point.value;
                 return true;
             }
     }
     else if (direction < 0)
     {
         for (auto it = detents.rbegin(); it != detents.rend(); ++it)
-            if (*it < start - eps && *it >= target - eps)
+            if (it->value < start - eps && it->value >= target - eps)
             {
-                detent = *it;
+                detent = it->value;
                 return true;
             }
     }
 
     return false;
+}
+
+double manual_translation::apply_hard_stops(const std::vector<detent_point>& detents, double start, double target,
+                                            int direction)
+{
+    constexpr double eps = 1e-6;
+
+    // hard stops can't be crossed from either side, sitting on one keeps the axis there
+    if (direction > 0)
+    {
+        for (const detent_point& point : detents)
+            if (point.hard && point.value >= start - eps)
+                return std::max(start, std::min(target, point.value));
+    }
+    else if (direction < 0)
+    {
+        for (auto it = detents.rbegin(); it != detents.rend(); ++it)
+            if (it->hard && it->value <= start + eps)
+                return std::min(start, std::max(target, it->value));
+    }
+
+    return target;
 }
 
 void manual_translation::reset_axis_state(int idx)
@@ -460,10 +510,13 @@ Pose manual_translation::apply(const main_settings& s, const Pose& value, bool f
                 if (direction != 0 && move_dt > 0)
                 {
                     const double start = positions[i];
-                    const double target = std::clamp(start + double(direction) * double(axis.speed) * move_dt, min, max);
+                    const auto points = detents_active ? detent_positions(axis, min, max) : std::vector<detent_point>{};
+                    const double target = apply_hard_stops(points, start,
+                                                           std::clamp(start + double(direction) * double(axis.speed) * move_dt, min, max),
+                                                           direction);
                     double detent = 0;
 
-                    if (detents_active && find_crossed_detent(detent_positions(axis, min, max), start, target, direction, detent))
+                    if (detents_active && find_crossed_detent(points, start, target, direction, detent))
                     {
                         positions[i] = detent;
                         detent_state.active = true;

@@ -9,6 +9,7 @@
 - Added Windows joystick analog control for manual translation, including per-axis joystick selection, invert, deadzone settings, and tracked-plus-analog combination modes.
 - Added manual axis detents for manual key control, with per-axis enable toggles, configurable detent positions, and hold-to-pass delay timing.
 - Added a per-axis "Press again" detent option: holding a manual key stops at each detent for the rest of the hold, and releasing and pressing again moves on to the next one (e.g. points `0, 20, 40, 60` step 0 → 20 → 40 → 60 one press at a time).
+- Added hard-stop detents: end a detent point with `!` and manual keys can never move the axis past it, from either side (e.g. `0, 15, 30, 45!` stops at 45 however long or often the key is pressed; `-45!, 0, 45!` caps both ends).
 - Updated the manual translation options UI and runtime pipeline so recentering and mode changes clear temporary manual-axis state cleanly.
 - Added hold-to-snap rear `Tail View` shortcuts with configurable anchor, deadzone, and follow scales, plus a matching configurable `Up View`.
 - Added a configurable `Tail View` lean (sideways toward the look direction, up, forward) that eases in and out over a set time, so the eye point can move past the seat back; zero by default.
