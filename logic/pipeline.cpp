@@ -421,9 +421,67 @@ void manual_translation::reset()
 {
     positions = {};
     manual_values = {};
+    reports = {};
     for (auto& detent : detents)
         reset_detent_state(detent);
     timer_started = false;
+}
+
+manual_translation::detent_report
+manual_translation::report_detent(const main_settings_impl::manual_translation_axis_settings& axis,
+                                  const detent_state& state, const std::vector<detent_point>& detents,
+                                  double position, int direction)
+{
+    constexpr double eps = 1e-6;
+    detent_report report;
+
+    if (direction == 0)
+        return report;
+
+    // capped when the held key can't move the axis off the point, a detent on a hard stop counts as the stop
+    for (const detent_point& point : detents)
+        if (point.hard && std::fabs(point.value - position) <= eps &&
+            std::fabs(apply_hard_stops(detents, position, position + direction, direction) - position) <= eps)
+        {
+            report.hard_stop = true;
+            report.value = point.value;
+            return report;
+        }
+
+    if (state.active)
+    {
+        report.on_detent = true;
+        report.value = state.position;
+        if (!bool(axis.detent_press_to_pass))
+            report.remaining = std::max(0.0, double(axis.detent_delay) - state.held_time);
+    }
+
+    return report;
+}
+
+void manual_translation::fill_status(const main_settings& s, pipeline_status& status) const
+{
+    for (int i = 0; i < axis_count; i++)
+    {
+        const auto mode = translation_control_mode(s.manual_translation_axes[i]->mode);
+        auto& axis = status.axes[size_t(i)];
+        const bool tracked = axis.source != axis_source::disabled;
+
+        if (mode == translation_disabled)
+            axis.source = axis_source::disabled;
+        else if (uses_manual_keys(mode))
+            axis.source = tracked && uses_tracking(mode) ? axis_source::tracked_keys : axis_source::keys;
+        else if (uses_manual_analog(mode))
+            axis.source = tracked && uses_tracking(mode) ? axis_source::tracked_analog : axis_source::analog;
+
+        const auto& report = reports[size_t(i)];
+        axis.on_detent = report.on_detent;
+        axis.hard_stop = report.hard_stop;
+        axis.detent_value = report.value;
+        axis.detent_remaining = report.remaining;
+    }
+
+    status.joystick_connected = analog_valid;
 }
 
 Pose manual_translation::apply(const main_settings& s, const Pose& value, bool frozen)
@@ -432,6 +490,8 @@ Pose manual_translation::apply(const main_settings& s, const Pose& value, bool f
 #ifdef _WIN32
     int analog_axes[8] {};
     const bool analog_axes_valid = !frozen && poll_analog_axes(s, analog_axes);
+    if (!frozen)
+        analog_valid = analog_axes_valid;
 #endif
 
     if (!timer_started)
@@ -466,6 +526,10 @@ Pose manual_translation::apply(const main_settings& s, const Pose& value, bool f
         const bool disabled = mode == translation_disabled;
         double manual_value = 0;
 
+        // a frozen pipeline keeps the last report
+        if (!frozen && !manual_keys)
+            reports[i] = {};
+
         if (disabled)
         {
             reset_axis_state(i);
@@ -483,6 +547,8 @@ Pose manual_translation::apply(const main_settings& s, const Pose& value, bool f
                 const bool negative = negative_held[i];
                 const bool positive = positive_held[i];
                 const int direction = negative != positive ? (positive ? 1 : -1) : 0;
+                const auto points = detents_active && direction != 0 ? detent_positions(axis, min, max)
+                                                                     : std::vector<detent_point>{};
 
                 if (direction == 0)
                     reset_detent_state(detent_state);
@@ -510,7 +576,6 @@ Pose manual_translation::apply(const main_settings& s, const Pose& value, bool f
                 if (direction != 0 && move_dt > 0)
                 {
                     const double start = positions[i];
-                    const auto points = detents_active ? detent_positions(axis, min, max) : std::vector<detent_point>{};
                     const double target = apply_hard_stops(points, start,
                                                            std::clamp(start + double(direction) * double(axis.speed) * move_dt, min, max),
                                                            direction);
@@ -527,6 +592,8 @@ Pose manual_translation::apply(const main_settings& s, const Pose& value, bool f
                     else
                         positions[i] = target;
                 }
+
+                reports[i] = report_detent(axis, detent_state, points, positions[i], direction);
             }
 
             manual_value = positions[i];
@@ -1207,9 +1274,12 @@ ok:
     libs.pProtocol->pose(value, raw);
 
     {
+        const pipeline_status status = make_status(value, raw, disabled, hold_ordered, zero_ordered);
+
         QMutexLocker foo(&mtx);
         m_output_pose = value;
         m_raw_6dof = raw;
+        m_status = status;
     }
 
     logger.write_pose(value); // "mapped"
@@ -1335,6 +1405,44 @@ void pipeline::raw_and_mapped_pose(double* mapped, double* raw) const
         raw[i] = m_raw_6dof(i);
         mapped[i] = m_output_pose(i);
     }
+}
+
+pipeline_status pipeline::make_status(const Pose& value, const Pose& raw, const vec6_bool& disabled,
+                                      bool frozen, bool zeroed) const
+{
+    pipeline_status status;
+
+    status.frozen = frozen;
+    status.zeroed = zeroed;
+    status.precision = precision.was_active;
+    status.tailview = tailview.was_active ? int(tailview.direction) : 0;
+    status.upview = upview.was_active;
+
+    const double precision_scales[3] = { s.precision_yaw_scale, s.precision_pitch_scale, s.precision_roll_scale };
+
+    for (int i = 0; i < 6; i++)
+    {
+        auto& axis = status.axes[size_t(i)];
+        axis.value = value(i);
+        axis.raw = raw(i);
+        axis.source = disabled(i) ? axis_source::disabled : axis_source::tracked;
+
+        if (i >= Yaw && status.precision)
+        {
+            axis.precision_scale = precision_scales[i - Yaw];
+            axis.precision = axis.precision_scale != 1;
+        }
+    }
+
+    manual.fill_status(s, status);
+
+    return status;
+}
+
+pipeline_status pipeline::status() const
+{
+    QMutexLocker foo(&mtx);
+    return m_status;
 }
 
 void pipeline::set_center(bool x) { b.set(f_center, x); }

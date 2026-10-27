@@ -88,6 +88,44 @@ struct OTR_LOGIC_EXPORT bits
 
 DEFINE_ENUM_OPERATORS(bit_flags);
 
+enum class axis_source : unsigned char
+{
+    disabled,
+    tracked,
+    keys,
+    analog,
+    tracked_keys,
+    tracked_analog,
+};
+
+// read-only snapshot of the pipeline for the status overlay
+struct axis_status final
+{
+    double value = 0;  // sent to the protocol
+    double raw = 0;    // from the tracker
+    axis_source source = axis_source::tracked;
+    // manual keys only, while a key is held
+    bool on_detent = false;
+    bool hard_stop = false;
+    double detent_value = 0;
+    // seconds until the held key passes the detent, negative if it won't
+    double detent_remaining = -1;
+    // rotation scaled by precision mode
+    bool precision = false;
+    double precision_scale = 1;
+};
+
+struct pipeline_status final
+{
+    std::array<axis_status, 6> axes {};
+    bool frozen = false;
+    bool zeroed = false;
+    bool precision = false;
+    int tailview = 0; // -1 left, 1 right
+    bool upview = false;
+    bool joystick_connected = false;
+};
+
 class OTR_LOGIC_EXPORT manual_translation final
 {
     struct detent_state final
@@ -104,6 +142,14 @@ class OTR_LOGIC_EXPORT manual_translation final
         bool hard = false;
     };
 
+    struct detent_report final
+    {
+        bool on_detent = false;
+        bool hard_stop = false;
+        double value = 0;
+        double remaining = -1;
+    };
+
     static constexpr int axis_count = 4;
 
     std::array<std::atomic_bool, axis_count> negative_held, positive_held;
@@ -112,6 +158,8 @@ class OTR_LOGIC_EXPORT manual_translation final
     std::array<detent_state, axis_count> detents {};
     std::array<translation_control_mode, axis_count> last_modes {};
     std::array<bool, axis_count> mode_initialized {};
+    std::array<detent_report, axis_count> reports {};
+    bool analog_valid = false;
     bool timer_started = false;
     Timer timer;
 #ifdef _WIN32
@@ -128,6 +176,9 @@ class OTR_LOGIC_EXPORT manual_translation final
                                    int direction);
     void reset_axis_state(int idx);
     static void reset_detent_state(detent_state& state);
+    static detent_report report_detent(const main_settings_impl::manual_translation_axis_settings& axis,
+                                       const detent_state& state, const std::vector<detent_point>& detents,
+                                       double position, int direction);
 #ifdef _WIN32
     bool poll_analog_axes(const main_settings& s, int* axes);
 #endif
@@ -139,6 +190,7 @@ public:
     void reset();
     Pose apply(const main_settings& s, const Pose& value, bool frozen);
     double manual_value(Axis axis) const;
+    void fill_status(const main_settings& s, pipeline_status& status) const;
 };
 
 class OTR_LOGIC_EXPORT pipeline : private QThread
@@ -184,6 +236,7 @@ class OTR_LOGIC_EXPORT pipeline : private QThread
     // Pose members are prefixed to avoid confusion since there are so many
     // pose variables.
     Pose m_output_pose, m_raw_6dof, m_last_value, m_newpose;
+    pipeline_status m_status;
 
     runtime_libraries const& libs;
     // The owner of the reference is the main window.
@@ -236,6 +289,8 @@ class OTR_LOGIC_EXPORT pipeline : private QThread
     Pose apply_lean(Pose value, bool zeroed);
     Pose apply_upview(Pose value, bool suppressed);
     Pose apply_zero_pos(Pose value) const;
+    pipeline_status make_status(const Pose& value, const Pose& raw, const vec6_bool& disabled,
+                                bool frozen, bool zeroed) const;
 
     bits b;
 
@@ -244,6 +299,7 @@ public:
     ~pipeline() override;
 
     void raw_and_mapped_pose(double* mapped, double* raw) const;
+    pipeline_status status() const;
     void start() { QThread::start(QThread::HighPriority); }
 
     void toggle_zero();
